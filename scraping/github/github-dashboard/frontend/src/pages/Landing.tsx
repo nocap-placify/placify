@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import backgroundImage from '../assets/Background.svg';
 import welcomeCard from '../assets/welcome_card.svg';
-import Welcome from '../assets/Welcome.png';
+import Welcome from '../assets/Welcome.svg';
 
 export const Landing = () => {
     const [isInputActive, setIsInputActive] = useState(false);
@@ -101,7 +101,7 @@ export const Landing = () => {
                         <img src={Welcome} alt="Welcome" style={{ 
                             maxWidth: '100%', 
                             height: 'auto',
-                            maxHeight: '120px' 
+                            maxHeight: '100px' 
                         }} />
                         <div className="input-container" style={{
                             display: 'flex',
