@@ -8,6 +8,8 @@ import (
 	"os"
 
 	"github.com/jszwec/csvutil"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 // Student represents a student record
@@ -62,4 +64,23 @@ func main() {
 			student.Degree, student.Stream, student.Gender, student.GithubProfile,
 			student.LeetcodeProfile, student.MentorName, student.ResumeLink)
 	}
+	dsn := "host=100.102.21.101 user=postgres password=dbms_porj dbname=dbms_project port=5432 sslmode=disable TimeZone=Asia/Shanghai"
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+
+	// Test the connection by executing a simple query
+	sqlDB, err := db.DB() // Access the underlying database/sql DB object
+	if err != nil {
+		panic("failed to get database handle")
+	}
+
+	// Ping the database to verify connection
+	err = sqlDB.Ping()
+	if err != nil {
+		panic("failed to ping database")
+	}
+
+	fmt.Println("Successfully connected to the database!")
 }
