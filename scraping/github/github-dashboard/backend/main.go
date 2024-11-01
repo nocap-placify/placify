@@ -8,6 +8,10 @@ import (
 	"gorm.io/gorm"
 )
 
+func (Student) TableName() string {
+	return "student"
+}
+
 func insertStudent(db *gorm.DB, student Student) error {
 	return db.Create(&student).Error
 }
