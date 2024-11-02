@@ -171,6 +171,26 @@ func getUsernameFromURL(githubURL string) (string, error) {
 }
 
 func main() {
+	//database connection
+	dsn := "host=100.102.21.101 user=postgres password=dbms_porj dbname=dbms_project port=5432 sslmode=disable TimeZone=Asia/Shanghai"
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+
+	// Test the connection by executing a simple query
+	sqlDB, err := db.DB()
+	if err != nil {
+		panic("failed to get database handle")
+	}
+
+	// Ping the database to verify connection
+	err = sqlDB.Ping()
+	if err != nil {
+		panic("failed to ping database")
+	}
+
+	fmt.Println("Successfully connected to the database!")
 
 	file, err := os.Open("data.csv")
 	if err != nil {
@@ -204,28 +224,25 @@ func main() {
 			student.Name, student.StudentID, student.CGPA, student.Age, student.Email, student.PhoneNo,
 			student.Degree, student.Stream, student.Gender, student.GithubProfile,
 			student.LeetcodeProfile, student.MentorID, student.Resume)
+		student := Student{
+			StudentID: student.StudentID,
+			Name:      student.Name,
+			PhoneNo:   student.PhoneNo,
+			Dob:       student.DOB,
+			Gender:    student.Gender,
+			Resume:    student.Resume,
+			Sem:       student.Sem,
+			MentorID:  6,
+			CGPA:      student.CGPA,
+			Email:     student.Email,
+			Age:       student.Age,
+		}
+		err = insertStudent(db, student)
+		if err != nil {
+			log.Fatal("failed to insert student:", err)
+		}
+		log.Println("Student inserted successfully")
 	}
-
-	// Database connection
-	dsn := "host=100.102.21.101 user=postgres password=dbms_porj dbname=dbms_project port=5432 sslmode=disable TimeZone=Asia/Shanghai"
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	if err != nil {
-		panic("failed to connect database")
-	}
-
-	// Test the connection by executing a simple query
-	sqlDB, err := db.DB()
-	if err != nil {
-		panic("failed to get database handle")
-	}
-
-	// Ping the database to verify connection
-	err = sqlDB.Ping()
-	if err != nil {
-		panic("failed to ping database")
-	}
-
-	fmt.Println("Successfully connected to the database!")
 
 	// Insert a test student into the database
 	student := Student{
