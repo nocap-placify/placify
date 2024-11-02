@@ -2,16 +2,37 @@ package main
 
 import (
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
+	"net/http"
+	"net/url"
 	"os"
+	"strings"
 	"time"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/jszwec/csvutil"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
+
+// ProfileData stores profile information including pinned repositories
+type ProfileData struct {
+	Username    string
+	Bio         string
+	RepoCount   string
+	PinnedRepos []PinnedRepo
+}
+
+// PinnedRepo stores information about a pinned repository
+type PinnedRepo struct {
+	Name      string
+	About     string
+	Languages []string
+}
 
 type Info struct {
 	StudentID       string    `gorm:"column:student_id;primaryKey" csv:"srn"`
@@ -51,6 +72,102 @@ func (Student) TableName() string {
 
 func insertStudent(db *gorm.DB, student Student) error {
 	return db.Create(&student).Error
+}
+
+// fetchProfileData scrapes the user's profile page to get username, bio, repo count, and pinned repositories with details
+func fetchProfileData(username, token string) ProfileData {
+	url := fmt.Sprintf("https://github.com/%s", username)
+	var profile ProfileData
+
+	// Send GET request
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Fatal("Failed to fetch profile:", err)
+	}
+	defer resp.Body.Close()
+
+	// Parse HTML
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	if err != nil {
+		log.Fatal("Failed to parse HTML:", err)
+	}
+
+	// Get username
+	profile.Username = doc.Find("span.vcard-username").Text()
+
+	// Get bio
+	profile.Bio = strings.TrimSpace(doc.Find("div.user-profile-bio").Text())
+
+	// Get repository count
+	profile.RepoCount = strings.TrimSpace(doc.Find("span.Counter").First().Text())
+
+	// Select each pinned repository and extract details
+	doc.Find(".pinned-item-list-item-content").Each(func(i int, s *goquery.Selection) {
+		repo := PinnedRepo{}
+
+		// Get repo name
+		repo.Name = strings.TrimSpace(s.Find(".repo").Text())
+
+		// Get about section if available
+		repo.About = strings.TrimSpace(s.Find("p.pinned-item-desc").Text())
+
+		// Fetch all languages used in the repository
+		repo.Languages = fetchRepoLanguages(username, repo.Name, token)
+
+		// Add this repository to the profile's pinned repos list
+		profile.PinnedRepos = append(profile.PinnedRepos, repo)
+	})
+
+	return profile
+}
+
+// fetchRepoLanguages fetches all languages used in a repository from the GitHub API
+func fetchRepoLanguages(username, repoName, token string) []string {
+	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/languages", username, repoName)
+
+	// Create request with optional authentication
+	req, _ := http.NewRequest("GET", url, nil)
+	if token != "" {
+		req.Header.Add("Authorization", "token "+token)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("Failed to fetch languages for %s: %v", repoName, err)
+		return nil
+	}
+	defer resp.Body.Close()
+
+	// Parse JSON response to get languages
+	var languagesMap map[string]int
+	body, _ := ioutil.ReadAll(resp.Body)
+	if err := json.Unmarshal(body, &languagesMap); err != nil {
+		log.Printf("Error parsing languages for %s: %v", repoName, err)
+		return nil
+	}
+
+	// Extract language names as a slice
+	var languages []string
+	for lang := range languagesMap {
+		languages = append(languages, lang)
+	}
+	return languages
+}
+func getUsernameFromURL(githubURL string) (string, error) {
+	// Parse the URL
+	parsedURL, err := url.Parse(githubURL)
+	if err != nil {
+		return "", err
+	}
+
+	// Split the path and get the username
+	parts := strings.Split(parsedURL.Path, "/")
+	if len(parts) < 2 || parts[1] == "" {
+		return "", fmt.Errorf("invalid GitHub URL: %s", githubURL)
+	}
+
+	return parts[1], nil
 }
 
 func main() {
@@ -129,4 +246,28 @@ func main() {
 		log.Fatal("failed to insert student:", err)
 	}
 	log.Println("Student inserted successfully")
+
+	username_np := all_info[0].GithubProfile
+	token := ""
+	username, err := getUsernameFromURL(username_np)
+	if err != nil {
+		fmt.Println("Error:", err)
+	} else {
+		fmt.Println("Username:", username)
+	}
+	profile := fetchProfileData(username, token)
+
+	// Display profile information
+	fmt.Printf("Username: %s\n", profile.Username)
+	fmt.Printf("Bio: %s\n", profile.Bio)
+	fmt.Printf("Public Repositories: %s\n", profile.RepoCount)
+	fmt.Println("Pinned Repositories:")
+
+	// Iterate through each pinned repository and display details
+	for _, repo := range profile.PinnedRepos {
+		fmt.Printf("\nRepository Name: %s\n", repo.Name)
+		fmt.Printf("About: %s\n", repo.About)
+		fmt.Printf("Languages Used: %s\n", strings.Join(repo.Languages, ", "))
+	}
+
 }
