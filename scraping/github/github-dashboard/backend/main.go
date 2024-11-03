@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -41,8 +40,8 @@ type Info struct {
 	DOB             time.Time `gorm:"column:dob" csv:"dob"` // Add dob to the CSV if available
 	Gender          string    `gorm:"column:gender" csv:"gender"`
 	Resume          string    `gorm:"column:resume" csv:"resume"`
-	Sem             int       `gorm:"column:sem"`       // Add sem to CSV if relevant
-	MentorID        int       `gorm:"column:mentor_id"` // Adjust if MentorID maps to a different field
+	Sem             int       `gorm:"column:sem"`                           // Add sem to CSV if relevant
+	MentorID        string    `gorm:"column:mentor_name" csv:"mentor_name"` // Adjust if MentorID maps to a different field
 	CGPA            float64   `gorm:"column:cgpa" csv:"cgpa"`
 	Degree          string    `gorm:"column:degree" csv:"degree"`
 	Stream          string    `gorm:"column:stream" csv:"stream"`
@@ -66,20 +65,42 @@ type Student struct {
 	Age       int       `gorm:"column:age"`
 }
 
+type Mentor struct {
+	MentorID int    `gorm:"primaryKey;column:mentor_id"`
+	Name     string `gorm:"type:varchar(100);column:mentor_name"`
+}
+
 func (Student) TableName() string {
 	return "student"
+}
+
+func (Mentor) TableName() string {
+	return "mentor"
 }
 
 func insertStudent(db *gorm.DB, student Student) error {
 	return db.Create(&student).Error
 }
 
+func fetchMentorID(db *gorm.DB, name string) (int, error) {
+	// Log the mentor name being searched
+	if name == "" {
+		log.Println("Warning: Mentor name is empty. Check CSV data or mapping logic.")
+		return 0, fmt.Errorf("mentor name is empty")
+	}
+
+	var mentor Mentor
+	err := db.Where("mentor_name = ?", name).First(&mentor).Error
+	if err != nil {
+		return 0, err
+	}
+	return mentor.MentorID, nil
+}
+
 // fetchProfileData scrapes the user's profile page to get username, bio, repo count, and pinned repositories with details
 func fetchProfileData(username, token string) ProfileData {
 	url := fmt.Sprintf("https://github.com/%s", username)
 	var profile ProfileData
-
-	// Send GET request
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Fatal("Failed to fetch profile:", err)
@@ -91,14 +112,10 @@ func fetchProfileData(username, token string) ProfileData {
 	if err != nil {
 		log.Fatal("Failed to parse HTML:", err)
 	}
-
-	// Get username
 	profile.Username = doc.Find("span.vcard-username").Text()
 
-	// Get bio
 	profile.Bio = strings.TrimSpace(doc.Find("div.user-profile-bio").Text())
 
-	// Get repository count
 	profile.RepoCount = strings.TrimSpace(doc.Find("span.Counter").First().Text())
 
 	// Select each pinned repository and extract details
@@ -141,7 +158,7 @@ func fetchRepoLanguages(username, repoName, token string) []string {
 
 	// Parse JSON response to get languages
 	var languagesMap map[string]int
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	if err := json.Unmarshal(body, &languagesMap); err != nil {
 		log.Printf("Error parsing languages for %s: %v", repoName, err)
 		return nil
@@ -219,50 +236,39 @@ func main() {
 	}
 
 	// Print or process each student's data
-	for _, student := range all_info {
-		fmt.Printf("Name: %s, SRN: %s, CGPA: %.2f, Age: %d, Email: %s, Phone: %s, Degree: %s, Stream: %s, Gender: %s, GitHub: %s, LeetCode: %s, Mentor: %d, Resume: %s\n",
-			student.Name, student.StudentID, student.CGPA, student.Age, student.Email, student.PhoneNo,
-			student.Degree, student.Stream, student.Gender, student.GithubProfile,
-			student.LeetcodeProfile, student.MentorID, student.Resume)
-		student := Student{
-			StudentID: student.StudentID,
-			Name:      student.Name,
-			PhoneNo:   student.PhoneNo,
-			Dob:       student.DOB,
-			Gender:    student.Gender,
-			Resume:    student.Resume,
-			Sem:       student.Sem,
-			MentorID:  6,
-			CGPA:      student.CGPA,
-			Email:     student.Email,
-			Age:       student.Age,
-		}
-		err = insertStudent(db, student)
-		if err != nil {
-			log.Fatal("failed to insert student:", err)
-		}
-		log.Println("Student inserted successfully")
-	}
+	// for _, student := range all_info {
+	// 	fmt.Printf("Name: %s, SRN: %s, CGPA: %.2f, Age: %d, Email: %s, Phone: %s, Degree: %s, Stream: %s, Gender: %s, GitHub: %s, LeetCode: %s, Mentor: %d, Resume: %s\n",
+	// 		student.Name, student.StudentID, student.CGPA, student.Age, student.Email, student.PhoneNo,
+	// 		student.Degree, student.Stream, student.Gender, student.GithubProfile,
+	// 		student.LeetcodeProfile, student.MentorID, student.Resume)
+	// 	mentorID, err := fetchMentorID(db, student.MentorID)
+	// 	if err != nil {
+	// 		log.Printf("Could not find mentor ID for %s: %v", student.MentorID, err)
+	// 		continue
+	// 	}
+	// 	student := Student{
+	// 		StudentID: student.StudentID,
+	// 		Name:      student.Name,
+	// 		PhoneNo:   student.PhoneNo,
+	// 		Dob:       student.DOB,
+	// 		Gender:    student.Gender,
+	// 		Resume:    student.Resume,
+	// 		Sem:       student.Sem,
+	// 		MentorID:  mentorID,
+	// 		CGPA:      student.CGPA,
+	// 		Email:     student.Email,
+	// 		Age:       student.Age,
+	// 	}
+	// 	err = insertStudent(db, student)
+	// 	if err != nil {
+	// 		log.Fatal("failed to insert student:", err)
+	// 	}
+	// 	log.Println("Student inserted successfully")
+	// }
 
-	// Insert a test student into the database
-	student := Student{
-		StudentID: all_info[0].StudentID,
-		Name:      all_info[0].Name,
-		PhoneNo:   all_info[0].PhoneNo,
-		Dob:       all_info[0].DOB,
-		Gender:    all_info[0].Gender,
-		Resume:    all_info[0].Resume,
-		Sem:       all_info[0].Sem,
-		MentorID:  6,
-		CGPA:      all_info[0].CGPA,
-		Email:     all_info[0].Email,
-		Age:       all_info[0].Age,
-	}
-	err = insertStudent(db, student)
-	if err != nil {
-		log.Fatal("failed to insert student:", err)
-	}
-	log.Println("Student inserted successfully")
+	fmt.Printf("mentor name is %s\n", all_info[5].MentorID)
+	mentorId, err := fetchMentorID(db, all_info[5].MentorID)
+	fmt.Printf("mentor number is %d\n", mentorId)
 
 	username_np := all_info[0].GithubProfile
 	token := ""
@@ -282,7 +288,7 @@ func main() {
 
 	// Iterate through each pinned repository and display details
 	for _, repo := range profile.PinnedRepos {
-		fmt.Printf("\nRepository Name: %s\n", repo.Name)
+		fmt.Printf("Repository Name: %s\n", repo.Name)
 		fmt.Printf("About: %s\n", repo.About)
 		fmt.Printf("Languages Used: %s\n", strings.Join(repo.Languages, ", "))
 	}
