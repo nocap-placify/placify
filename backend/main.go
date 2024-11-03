@@ -84,6 +84,17 @@ type Github struct {
 	Bio       string `gorm:"type:text;column:bio"`
 	RepoCount string `gorm:"column:repo_count"`
 }
+type Repository struct {
+	RepoID   string `gorm:"primaryKey;column:repo_id"`
+	GithubID string `gorm:"column:github_id"`
+	RepoName string `gorm:"type:varchar(100);column:repo_name"`
+	Language string `gorm:"type:text;column:language"`
+	Desc     string `gorm:"type:text;column:desc"`
+}
+
+func insertRepository(db *gorm.DB, repo Repository) error {
+	return db.Create(&repo).Error
+}
 
 func (Student) TableName() string {
 	return "student"
@@ -94,6 +105,10 @@ func (Mentor) TableName() string {
 }
 func (Github) TableName() string {
 	return "github"
+}
+
+func (Repository) TableName() string {
+	return "repository"
 }
 
 func insertStudent(db *gorm.DB, student Student) error {
@@ -339,8 +354,8 @@ func main() {
 		log.Println("github intserted successfully")
 	}
 
-	fmt.Printf("mentor name is %s\n", all_info[5].MentorID)
-	mentorId, err := fetchMentorID(db, all_info[5].MentorID)
+	fmt.Printf("mentor name is %s\n", all_info[0].MentorID)
+	mentorId, err := fetchMentorID(db, all_info[0].MentorID)
 	fmt.Printf("mentor number is %d\n", mentorId)
 
 	if err != nil {
@@ -360,6 +375,19 @@ func main() {
 		fmt.Printf("Repository Name: %s\n", repo.Name)
 		fmt.Printf("About: %s\n", repo.About)
 		fmt.Printf("Languages Used: %s\n", strings.Join(repo.Languages, ", "))
+		test_repo := Repository{
+			RepoID:   all_info[0].GithubProfile + "/" + repo.Name,
+			GithubID: all_info[0].GithubProfile,
+			RepoName: repo.Name,
+			Language: strings.Join(repo.Languages, ", "),
+			Desc:     repo.About,
+		}
+		fmt.Printf("testing repository struct repo:%s, git:%s, reponame:%s, lang:%s, desc:%s\n", test_repo.RepoID, test_repo.GithubID, test_repo.RepoName, test_repo.Language, test_repo.Desc)
+		if err := insertRepository(db, test_repo); err != nil {
+			log.Fatalf("Failed to insert repository: %v", err)
+		} else {
+			log.Println("Repository inserted successfully")
+		}
 	}
 	for _, student := range all_info {
 		// Process LeetCode Profile
