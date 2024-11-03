@@ -17,7 +17,14 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
-
+// LeetCodeProfile stores profile information specific to LeetCode
+type LeetCodeProfile struct {
+    Username     string // We will manually set this
+    EasySolved   int
+    MediumSolved int
+    HardSolved   int
+    TotalSolved  int
+}
 // ProfileData stores profile information including pinned repositories
 type ProfileData struct {
 	Username    string
@@ -201,6 +208,38 @@ func getUsernameFromURL(githubURL string) (string, error) {
 func insertGithub(db *gorm.DB, github Github) error {
 	return db.Create(&github).Error
 }
+
+func fetchLeetCodeProfileData(username string) LeetCodeProfile {
+    url := fmt.Sprintf("https://leetcode-stats-api.herokuapp.com/%s", username)
+    var profile LeetCodeProfile
+
+    maxRetries := 3
+    for i := 0; i < maxRetries; i++ {
+        resp, err := http.Get(url)
+        if err != nil {
+            log.Printf("Failed to fetch LeetCode profile for %s: %v", username, err)
+            continue
+        }
+        defer resp.Body.Close()
+
+        if resp.StatusCode == http.StatusOK {
+            err = json.NewDecoder(resp.Body).Decode(&profile)
+            if err != nil {
+                log.Printf("Failed to parse LeetCode JSON for %s: %v", username, err)
+                return profile
+            }
+            profile.Username = username
+            return profile
+        } else {
+            log.Printf("LeetCode profile fetch error for %s: Status %d", username, resp.StatusCode)
+        }
+
+        // Wait before retrying
+        time.Sleep(2 * time.Second)
+    }
+    return profile
+}
+
 func main() {
 	//database connection
 	dsn := "host=100.102.21.101 user=postgres password=dbms_porj dbname=dbms_project port=5432 sslmode=disable TimeZone=Asia/Shanghai"
@@ -321,6 +360,16 @@ func main() {
 		fmt.Printf("Repository Name: %s\n", repo.Name)
 		fmt.Printf("About: %s\n", repo.About)
 		fmt.Printf("Languages Used: %s\n", strings.Join(repo.Languages, ", "))
+	}
+	for _, student := range all_info {
+		// Process LeetCode Profile
+		if username, err := getUsernameFromURL(student.LeetcodeProfile); err == nil {
+			leetProfile := fetchLeetCodeProfileData(username)
+			fmt.Printf("LeetCode Username: %s, Total Solved: %d, Easy: %d, Medium: %d, Hard: %d\n",
+				leetProfile.Username, leetProfile.TotalSolved, leetProfile.EasySolved, leetProfile.MediumSolved, leetProfile.HardSolved)
+		} else {
+			log.Printf("Skipping invalid LeetCode URL for student %s: %v", student.Name, err)
+		}
 	}
 
 }
