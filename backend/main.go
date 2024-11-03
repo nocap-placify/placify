@@ -70,12 +70,23 @@ type Mentor struct {
 	Name     string `gorm:"type:varchar(100);column:mentor_name"`
 }
 
+type Github struct {
+	GithubID  string `gorm:"primaryKey;type:text;column:github_id"`
+	StudentID string `gorm:"column:student_id"`
+	Username  string `gorm:"type:varchar(50);column:username"`
+	Bio       string `gorm:"type:text;column:bio"`
+	RepoCount string `gorm:"column:repo_count"`
+}
+
 func (Student) TableName() string {
 	return "student"
 }
 
 func (Mentor) TableName() string {
 	return "mentor"
+}
+func (Github) TableName() string {
+	return "github"
 }
 
 func insertStudent(db *gorm.DB, student Student) error {
@@ -187,6 +198,9 @@ func getUsernameFromURL(githubURL string) (string, error) {
 	return parts[1], nil
 }
 
+func insertGithub(db *gorm.DB, github Github) error {
+	return db.Create(&github).Error
+}
 func main() {
 	//database connection
 	dsn := "host=100.102.21.101 user=postgres password=dbms_porj dbname=dbms_project port=5432 sslmode=disable TimeZone=Asia/Shanghai"
@@ -234,51 +248,67 @@ func main() {
 		}
 		all_info = append(all_info, sing_info)
 	}
-
+	username_np := all_info[0].GithubProfile
+	token := ""
+	username, err := getUsernameFromURL(username_np)
+	profile := fetchProfileData(username, token)
 	// Print or process each student's data
-	// for _, student := range all_info {
-	// 	fmt.Printf("Name: %s, SRN: %s, CGPA: %.2f, Age: %d, Email: %s, Phone: %s, Degree: %s, Stream: %s, Gender: %s, GitHub: %s, LeetCode: %s, Mentor: %d, Resume: %s\n",
-	// 		student.Name, student.StudentID, student.CGPA, student.Age, student.Email, student.PhoneNo,
-	// 		student.Degree, student.Stream, student.Gender, student.GithubProfile,
-	// 		student.LeetcodeProfile, student.MentorID, student.Resume)
-	// 	mentorID, err := fetchMentorID(db, student.MentorID)
-	// 	if err != nil {
-	// 		log.Printf("Could not find mentor ID for %s: %v", student.MentorID, err)
-	// 		continue
-	// 	}
-	// 	student := Student{
-	// 		StudentID: student.StudentID,
-	// 		Name:      student.Name,
-	// 		PhoneNo:   student.PhoneNo,
-	// 		Dob:       student.DOB,
-	// 		Gender:    student.Gender,
-	// 		Resume:    student.Resume,
-	// 		Sem:       student.Sem,
-	// 		MentorID:  mentorID,
-	// 		CGPA:      student.CGPA,
-	// 		Email:     student.Email,
-	// 		Age:       student.Age,
-	// 	}
-	// 	err = insertStudent(db, student)
-	// 	if err != nil {
-	// 		log.Fatal("failed to insert student:", err)
-	// 	}
-	// 	log.Println("Student inserted successfully")
-	// }
+	for _, student := range all_info {
+		fmt.Printf("Name: %s, SRN: %s, CGPA: %.2f, Age: %d, Email: %s, Phone: %s, Degree: %s, Stream: %s, Gender: %s, GitHub: %s, LeetCode: %s, Mentor: %d, Resume: %s\n",
+			student.Name, student.StudentID, student.CGPA, student.Age, student.Email, student.PhoneNo,
+			student.Degree, student.Stream, student.Gender, student.GithubProfile,
+			student.LeetcodeProfile, student.MentorID, student.Resume)
+		mentorID, err := fetchMentorID(db, student.MentorID)
+
+		if err != nil {
+			log.Printf("Could not find mentor ID for %s: %v", student.MentorID, err)
+			continue
+		}
+		github := Github{
+			GithubID: student.GithubProfile,
+			// StudentID: student.StudentID,
+			StudentID: "PES2UG22CS001",
+			Username:  profile.Username,
+			Bio:       profile.Bio,
+			RepoCount: profile.RepoCount,
+		}
+		log.Println(mentorID)
+		// student := Student{
+		// 	StudentID: student.StudentID,
+		// 	Name:      student.Name,
+		// 	PhoneNo:   student.PhoneNo,
+		// 	Dob:       student.DOB,
+		// 	Gender:    student.Gender,
+		// 	Resume:    student.Resume,
+		// 	Sem:       student.Sem,
+		// 	MentorID:  mentorID,
+		// 	CGPA:      student.CGPA,
+		// 	Email:     student.Email,
+		// 	Age:       student.Age,
+		// }
+
+		// err = insertStudent(db, student)
+		// if err != nil {
+		// 	log.Fatal("failed to insert student:", err)
+		// }
+		// log.Println("Student inserted successfully")
+
+		err = insertGithub(db, github)
+		if err != nil {
+			log.Fatal("failed to insert github:", err)
+		}
+		log.Println("github intserted successfully")
+	}
 
 	fmt.Printf("mentor name is %s\n", all_info[5].MentorID)
 	mentorId, err := fetchMentorID(db, all_info[5].MentorID)
 	fmt.Printf("mentor number is %d\n", mentorId)
 
-	username_np := all_info[0].GithubProfile
-	token := ""
-	username, err := getUsernameFromURL(username_np)
 	if err != nil {
 		fmt.Println("Error:", err)
 	} else {
 		fmt.Println("Username:", username)
 	}
-	profile := fetchProfileData(username, token)
 
 	// Display profile information
 	fmt.Printf("Username: %s\n", profile.Username)
