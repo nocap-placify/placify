@@ -265,7 +265,13 @@ func getUsernameFromURL(githubURL string) (string, error) {
 }
 
 func insertGithub(db *gorm.DB, github Github) error {
-	return db.Create(&github).Error
+	query := `INSERT INTO github (github_id, student_id, username, bio, repo_count)
+              VALUES ($1, $2, $3, $4, $5)`
+	err := db.Exec(query, github.GithubID, github.StudentID, github.Username, github.Bio, github.RepoCount).Error
+	if err != nil {
+		return fmt.Errorf("could not insert %v", err)
+	}
+	return nil
 }
 
 func insertProblems(db *gorm.DB, problems Problems) error {
