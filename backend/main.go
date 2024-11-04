@@ -281,7 +281,18 @@ func insertGithub(db *gorm.DB, github Github) error {
 }
 
 func insertProblems(db *gorm.DB, problems Problems) error {
-	return db.Create(&problems).Error
+	// SQL query to insert a new row into the "problems" table
+	query := `
+		INSERT INTO problems (problem_id, leetcode_id, no_easy, no_medium, no_hard)
+		VALUES ($1, $2, $3, $4, $5);
+	`
+
+	// Execute the query with the provided values
+	err := db.Exec(query, problems.ProblemID, problems.LeetcodeID, problems.NoEasy, problems.NoMedium, problems.NoHard).Error
+	if err != nil {
+		return fmt.Errorf("could not insert problem: %v", err)
+	}
+	return nil
 }
 
 func fetchLeetCodeProfileData(username string) LeetCodeProfile {
