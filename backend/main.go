@@ -143,7 +143,20 @@ func (Repository) TableName() string {
 }
 
 func insertStudent(db *gorm.DB, student Student) error {
-	return db.Create(&student).Error
+	// Prepare the SQL query to insert a new student
+	query := `
+		INSERT INTO student 
+		(student_id, name, phone_no, dob, gender, resume, sem, mentor_id, cgpa, email, age) 
+		VALUES 
+		($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+	`
+	err := db.Exec(query, student.StudentID, student.Name, student.PhoneNo, student.Dob, student.Gender,
+		student.Resume, student.Sem, student.MentorID, student.CGPA, student.Email, student.Age).Error
+
+	if err != nil {
+		return fmt.Errorf("could not insert student: %v", err)
+	}
+	return nil
 }
 
 func fetchMentorID(db *gorm.DB, name string) (int, error) {
@@ -392,7 +405,27 @@ func main() {
 		// }
 		// log.Println("github intserted successfully")
 	}
-	//extracting username
+	mentorID, err := fetchMentorID(db, all_info[1].MentorID)
+	log.Printf("!!!!!!!!!!inserting INTO STUDENT DB!!!!!USING SQLL!!!!\n")
+	student := Student{
+		StudentID: all_info[1].StudentID,
+		Name:      all_info[1].Name,
+		PhoneNo:   all_info[1].PhoneNo,
+		Dob:       all_info[1].DOB,
+		Gender:    all_info[1].Gender,
+		Resume:    all_info[1].Resume,
+		Sem:       all_info[1].Sem,
+		MentorID:  mentorID,
+		CGPA:      all_info[1].CGPA,
+		Email:     all_info[1].Email,
+		Age:       all_info[1].Age,
+	}
+
+	err = insertStudent(db, student)
+	if err != nil {
+		log.Fatal("failed to insert student:", err)
+	}
+	log.Println("Student inserted successfully")
 
 	username_np := all_info[0].GithubProfile
 	token := ""
