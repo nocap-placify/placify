@@ -17,14 +17,16 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
+
 // LeetCodeProfile stores profile information specific to LeetCode
 type LeetCodeProfile struct {
-    Username     string // We will manually set this
-    EasySolved   int
-    MediumSolved int
-    HardSolved   int
-    TotalSolved  int
+	Username     string // We will manually set this
+	EasySolved   int
+	MediumSolved int
+	HardSolved   int
+	TotalSolved  int
 }
+
 // ProfileData stores profile information including pinned repositories
 type ProfileData struct {
 	Username    string
@@ -56,6 +58,20 @@ type Info struct {
 	GithubProfile   string    `gorm:"column:github_profile" csv:"github_profile"`
 	LeetcodeProfile string    `gorm:"column:leetcode_profile" csv:"leetcode_profile"`
 	Age             int       `gorm:"column:age" csv:"age"`
+}
+
+type Mentor_Session_CSV struct {
+	MentorID  int       `gorm:"column:mentor_name" csv:"mentor_name"`
+	StudentID string    `gorm:"column:student_id;primaryKey" csv:"srn"`
+	Date      time.Time `gorm:"column:date" csv:"date"`
+	Advice    string    `gorm:"advice" csv:"advice"`
+}
+
+type Mentor_Session_DB struct {
+	MentorID  int       `gorm:"column:mentor_name"`
+	StudentID string    `gorm:"column:student_id;primaryKey"`
+	Date      time.Time `gorm:"column:date"`
+	Advice    string    `gorm:"advice"`
 }
 
 type Student struct {
@@ -225,34 +241,34 @@ func insertGithub(db *gorm.DB, github Github) error {
 }
 
 func fetchLeetCodeProfileData(username string) LeetCodeProfile {
-    url := fmt.Sprintf("https://leetcode-stats-api.herokuapp.com/%s", username)
-    var profile LeetCodeProfile
+	url := fmt.Sprintf("https://leetcode-stats-api.herokuapp.com/%s", username)
+	var profile LeetCodeProfile
 
-    maxRetries := 3
-    for i := 0; i < maxRetries; i++ {
-        resp, err := http.Get(url)
-        if err != nil {
-            log.Printf("Failed to fetch LeetCode profile for %s: %v", username, err)
-            continue
-        }
-        defer resp.Body.Close()
+	maxRetries := 3
+	for i := 0; i < maxRetries; i++ {
+		resp, err := http.Get(url)
+		if err != nil {
+			log.Printf("Failed to fetch LeetCode profile for %s: %v", username, err)
+			continue
+		}
+		defer resp.Body.Close()
 
-        if resp.StatusCode == http.StatusOK {
-            err = json.NewDecoder(resp.Body).Decode(&profile)
-            if err != nil {
-                log.Printf("Failed to parse LeetCode JSON for %s: %v", username, err)
-                return profile
-            }
-            profile.Username = username
-            return profile
-        } else {
-            log.Printf("LeetCode profile fetch error for %s: Status %d", username, resp.StatusCode)
-        }
+		if resp.StatusCode == http.StatusOK {
+			err = json.NewDecoder(resp.Body).Decode(&profile)
+			if err != nil {
+				log.Printf("Failed to parse LeetCode JSON for %s: %v", username, err)
+				return profile
+			}
+			profile.Username = username
+			return profile
+		} else {
+			log.Printf("LeetCode profile fetch error for %s: Status %d", username, resp.StatusCode)
+		}
 
-        // Wait before retrying
-        time.Sleep(2 * time.Second)
-    }
-    return profile
+		// Wait before retrying
+		time.Sleep(2 * time.Second)
+	}
+	return profile
 }
 
 func main() {
@@ -308,7 +324,7 @@ func main() {
 	profile := fetchProfileData(username, token)
 	// Print or process each student's data
 	for _, student := range all_info {
-		fmt.Printf("Name: %s, SRN: %s, CGPA: %.2f, Age: %d, Email: %s, Phone: %s, Degree: %s, Stream: %s, Gender: %s, GitHub: %s, LeetCode: %s, Mentor: %d, Resume: %s\n",
+		fmt.Printf("Name: %s, SRN: %s, CGPA: %.2f, Age: %d, Email: %s, Phone: %s, Degree: %s, Stream: %s, Gender: %s, GitHub: %s, LeetCode: %s, Mentor: %s, Resume: %s\n",
 			student.Name, student.StudentID, student.CGPA, student.Age, student.Email, student.PhoneNo,
 			student.Degree, student.Stream, student.Gender, student.GithubProfile,
 			student.LeetcodeProfile, student.MentorID, student.Resume)
