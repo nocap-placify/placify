@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/gorilla/handlers"
 	"github.com/jszwec/csvutil"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -338,6 +339,32 @@ func insertLeetCode(db *gorm.DB, leetcode LeetCode) error {
 	}
 	return nil
 }
+
+func GetStudentName(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+	srn := r.URL.Query().Get("srn")
+
+	var name string
+	// Use GORM to retrieve the student name directly
+	result := db.Table("student").Select("name").Where("student_id = ?", srn).Scan(&name)
+
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			fmt.Println("Student not found")
+			http.Error(w, "Student not found", http.StatusNotFound)
+		} else {
+			fmt.Printf("Couldn't retrieve record: %v\n", result.Error)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	// Print the student name to the terminal
+	fmt.Printf("Student Name: %s\n", name)
+
+	// Optional: Return the name in the response
+	fmt.Fprintf(w, name)
+}
+
 func main() {
 	counter := 0
 	//database connection
@@ -586,5 +613,14 @@ func main() {
 		counter = counter + 1
 
 	}
+
+	fmt.Printf("!!!done setting up database!!!")
+
+	http.HandleFunc("/student", func(w http.ResponseWriter, r *http.Request) {
+		GetStudentName(db, w, r)
+	})
+
+	fmt.Println("Server is running on port 8000")
+	http.ListenAndServe(":8000", handlers.CORS()(http.DefaultServeMux))
 
 }
