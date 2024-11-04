@@ -106,7 +106,7 @@ type Repository struct {
 	GithubID string `gorm:"column:github_id"`
 	RepoName string `gorm:"type:varchar(100);column:repo_name"`
 	Language string `gorm:"type:text;column:language"`
-	Desc     string `gorm:"type:text;column:desc"`
+	Desc     string `gorm:"type:text;column:description"`
 }
 type LeetCode struct {
 	LeetCodeID string `gorm:"primaryKey;type:text;column:leetcode_id"`
@@ -124,7 +124,13 @@ type Problems struct {
 }
 
 func insertRepository(db *gorm.DB, repo Repository) error {
-	return db.Create(&repo).Error
+	query := `INSERT INTO repository (repo_id, github_id, repo_name, language, description)
+              VALUES ($1, $2, $3, $4, $5)`
+	err := db.Exec(query, repo.RepoID, repo.GithubID, repo.RepoName, repo.Language, repo.Desc).Error
+	if err != nil {
+		return fmt.Errorf("could not insert %v", err)
+	}
+	return nil
 }
 
 func (Student) TableName() string {
@@ -313,7 +319,13 @@ func (LeetCode) TableName() string {
 	return "leetcode"
 }
 func insertLeetCode(db *gorm.DB, leetcode LeetCode) error {
-	return db.Create(&leetcode).Error
+	query := `INSERT INTO leetcode (leetcode_id, student_id, username, ranking)
+              VALUES ($1, $2, $3, $4)`
+	err := db.Exec(query, leetcode.LeetCodeID, leetcode.StudentID, leetcode.Username, leetcode.Rank).Error
+	if err != nil {
+		return fmt.Errorf("could not insert %v", err)
+	}
+	return nil
 }
 func main() {
 	counter := 0
