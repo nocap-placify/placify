@@ -20,13 +20,13 @@ import (
 
 // LeetCodeProfile stores profile information specific to LeetCode
 type LeetCodeProfile struct {
-	Username     string // We will manually set this
-	EasySolved   int
-	MediumSolved int
-	HardSolved   int
-	TotalSolved  int
+    Username     string 
+    EasySolved   int
+    MediumSolved int
+    HardSolved   int
+    TotalSolved  int
+	Ranking int //changed rank
 }
-
 // ProfileData stores profile information including pinned repositories
 type ProfileData struct {
 	Username    string
@@ -106,6 +106,12 @@ type Repository struct {
 	RepoName string `gorm:"type:varchar(100);column:repo_name"`
 	Language string `gorm:"type:text;column:language"`
 	Desc     string `gorm:"type:text;column:desc"`
+}
+type LeetCode struct {
+    LeetCodeID string `gorm:"primaryKey;type:text;column:leetcode_id"`
+    StudentID  string `gorm:"column:student_id"`
+    Username   string `gorm:"type:varchar(50);column:username"`
+    Rank       int    `gorm:"column:ranking"`
 }
 
 func insertRepository(db *gorm.DB, repo Repository) error {
@@ -271,6 +277,12 @@ func fetchLeetCodeProfileData(username string) LeetCodeProfile {
 	return profile
 }
 
+func (LeetCode) TableName() string {
+    return "leetcode"
+}
+func insertLeetCode(db *gorm.DB, leetcode LeetCode) error {
+    return db.Create(&leetcode).Error
+}
 func main() {
 	//database connection
 	dsn := "host=100.102.21.101 user=postgres password=dbms_porj dbname=dbms_project port=5432 sslmode=disable TimeZone=Asia/Shanghai"
@@ -409,8 +421,23 @@ func main() {
 		// Process LeetCode Profile
 		if username, err := getUsernameFromURL(student.LeetcodeProfile); err == nil {
 			leetProfile := fetchLeetCodeProfileData(username)
-			fmt.Printf("LeetCode Username: %s, Total Solved: %d, Easy: %d, Medium: %d, Hard: %d\n",
-				leetProfile.Username, leetProfile.TotalSolved, leetProfile.EasySolved, leetProfile.MediumSolved, leetProfile.HardSolved)
+			fmt.Printf("LeetCode Username: %s, Total Solved: %d, Easy: %d, Medium: %d, Hard: %d, Rank: %d\n",
+				leetProfile.Username, leetProfile.TotalSolved, leetProfile.EasySolved, leetProfile.MediumSolved, leetProfile.HardSolved, leetProfile.Ranking)
+				// Prepare the LeetCode struct for insertion
+			leetcodeData := LeetCode{
+				LeetCodeID: student.LeetcodeProfile,
+				StudentID:  student.StudentID,
+				Username:   leetProfile.Username,
+				Rank:       leetProfile.Ranking,
+			}
+			// Insert the LeetCode data
+			err = insertLeetCode(db, leetcodeData)
+			if err != nil {
+				log.Printf("Failed to insert LeetCode data for %s: %v", student.LeetcodeProfile, err)
+			} else {
+				log.Println("LeetCode data inserted successfully")
+			}
+
 		} else {
 			log.Printf("Skipping invalid LeetCode URL for student %s: %v", student.Name, err)
 		}
