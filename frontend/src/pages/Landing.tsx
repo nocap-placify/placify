@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import axios from 'axios';
 import backgroundImage from '../assets/Background.svg';
 import welcomeCard from '../assets/welcome_card.svg';
 import Welcome from '../assets/Welcome.svg';
@@ -10,6 +11,7 @@ export const Landing = () => {
     const [showWrongAnimation, setShowWrongAnimation] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const [scale, setScale] = useState(1);
+    const [studentName, setStudentName] = useState('');
 
     const validateInput = (value: string) => {
         const regex = /^PES[1-2]UG[0-9]{2}(CS|EC)[0-9]{3}$/;
@@ -21,11 +23,25 @@ export const Landing = () => {
         setInputValue(value);
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (validateInput(inputValue)) {
             console.log('Valid SRN submitted:', inputValue);
             setIsInputValid(true);
-            // Add your submit logic here
+            setShowWrongAnimation(false);
+            try {
+                // Make the GET request to the Go backend
+                const response = await axios.get(`http://localhost:8000/student?srn=${inputValue}`);
+                setStudentName(response.data); // Assuming the response directly contains the student name
+                console.log('Student Name:', response.data); // Log the student name
+            } catch (error: any) { // Assert error to type 'any'
+                console.error('Error fetching student name:', error);
+                setStudentName(''); // Reset student name if there's an error
+                if (error.response && error.response.status === 404) {
+                    alert('Student not found'); // Show alert for student not found
+                } else {
+                    alert('An unexpected error occurred'); // Handle other errors
+                }
+            }
         } else {
             setIsInputValid(false);
             setShowWrongAnimation(true);
@@ -162,43 +178,11 @@ export const Landing = () => {
                                 <span>→</span>
                             </button>
                         </div>
+                        {/* Display the student name */}
+                        {studentName && <h2 style={{ color: 'white', marginTop: '20px' }}>Student Name: {studentName}</h2>}
                     </div>
                 </div>
             </div>
-            <style>
-                {`
-                body, html {
-                    margin: 0;
-                    padding: 0;
-                    overflow: hidden;
-                }
-                .landing-container {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                }
-                ::placeholder {
-                    color: rgba(255, 255, 255, 0.7);
-                    font-size: 18px;
-                    transition: color 0.3s ease;
-                }
-                input:focus::placeholder {
-                    color: rgba(255, 255, 255, 0);
-                }
-                @keyframes shake {
-                    0%, 100% { transform: translate(0, 0); }
-                    10%, 30%, 50%, 70%, 90% { transform: translate(-1px, -1px); }
-                    20%, 40%, 60%, 80% { transform: translate(1px, 1px); }
-                }
-                @keyframes subtleShake {
-                    0%, 100% { transform: translate(0, 0); }
-                    10%, 30%, 50%, 70%, 90% { transform: translate(-1px, 0); }
-                    20%, 40%, 60%, 80% { transform: translate(1px, 0); }
-                    15%, 35%, 55%, 75%, 95% { transform: translate(-0.5px, 0); }
-                    25%, 45%, 65%, 85% { transform: translate(0.5px, 0); }
-                }
-                `}
-            </style>
         </div>
     );
 };

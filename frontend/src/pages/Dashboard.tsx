@@ -96,16 +96,6 @@ export const Dashboard = () => {
               <motion.div variants={item}>
                 <Card 
                   backgroundColor="rgba(255, 255, 255, 0.6)" 
-                  borderColor="rgba(0, 119, 181, 1)" 
-                  glowColor="rgba(0, 119, 181, 0.2)" 
-                  title="LinkedIn" 
-                  content="LinkedIn profile information" 
-                  icon={<FaLinkedin size={48} />}
-                />
-              </motion.div>
-              <motion.div variants={item}>
-                <Card 
-                  backgroundColor="rgba(255, 255, 255, 0.6)" 
                   borderColor="rgba(255, 161, 22, 1)" 
                   glowColor="rgba(255, 161, 22, 0.2)" 
                   title="LeetCode" 
@@ -113,16 +103,7 @@ export const Dashboard = () => {
                   icon={<SiLeetcode size={48} />}
                 />
               </motion.div>
-              <motion.div variants={item}>
-                <Card 
-                  backgroundColor="rgba(255, 255, 255, 0.6)" 
-                  borderColor="rgba(0, 114, 84, 1)" 
-                  glowColor="rgba(0, 114, 84, 0.2)" 
-                  title="HackerRank" 
-                  content="HackerRank achievements" 
-                  icon={<SiHackerrank size={48} />}
-                />
-              </motion.div>
+
             </motion.div>
           </main>
         </motion.div>
