@@ -20,13 +20,14 @@ import (
 
 // LeetCodeProfile stores profile information specific to LeetCode
 type LeetCodeProfile struct {
-    Username     string 
-    EasySolved   int
-    MediumSolved int
-    HardSolved   int
-    TotalSolved  int
-	Ranking int //changed rank
+	Username     string
+	EasySolved   int
+	MediumSolved int
+	HardSolved   int
+	TotalSolved  int
+	Ranking      int //changed rank
 }
+
 // ProfileData stores profile information including pinned repositories
 type ProfileData struct {
 	Username    string
@@ -108,10 +109,18 @@ type Repository struct {
 	Desc     string `gorm:"type:text;column:desc"`
 }
 type LeetCode struct {
-    LeetCodeID string `gorm:"primaryKey;type:text;column:leetcode_id"`
-    StudentID  string `gorm:"column:student_id"`
-    Username   string `gorm:"type:varchar(50);column:username"`
-    Rank       int    `gorm:"column:ranking"`
+	LeetCodeID string `gorm:"primaryKey;type:text;column:leetcode_id"`
+	StudentID  string `gorm:"column:student_id"`
+	Username   string `gorm:"type:varchar(50);column:username"`
+	Rank       int    `gorm:"column:ranking"`
+}
+
+type Problems struct {
+	ProblemID  int    `gorm:"primaryKey;column:problem_id"`
+	LeetcodeID string `gorm:"type:text;column:leetcode_id"`
+	NoEasy     int    `gorm:"column:no_easy"`
+	NoMedium   int    `gorm:"column:no_medium"`
+	NoHard     int    `gorm:"column:no_hard"`
 }
 
 func insertRepository(db *gorm.DB, repo Repository) error {
@@ -246,8 +255,12 @@ func insertGithub(db *gorm.DB, github Github) error {
 	return db.Create(&github).Error
 }
 
+func insertProblems(db *gorm.DB, problems Problems) error {
+	return db.Create(&problems).Error
+}
+
 func fetchLeetCodeProfileData(username string) LeetCodeProfile {
-	url := fmt.Sprintf("https://leetcode-stats-api.herokuapp.com/%s", username)
+	url := fmt.Sprintf("http://100.102.21.101:8080/%s", username)
 	var profile LeetCodeProfile
 
 	maxRetries := 3
@@ -278,12 +291,13 @@ func fetchLeetCodeProfileData(username string) LeetCodeProfile {
 }
 
 func (LeetCode) TableName() string {
-    return "leetcode"
+	return "leetcode"
 }
 func insertLeetCode(db *gorm.DB, leetcode LeetCode) error {
-    return db.Create(&leetcode).Error
+	return db.Create(&leetcode).Error
 }
 func main() {
+	counter := 0
 	//database connection
 	dsn := "host=100.102.21.101 user=postgres password=dbms_porj dbname=dbms_project port=5432 sslmode=disable TimeZone=Asia/Shanghai"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
@@ -330,10 +344,7 @@ func main() {
 		}
 		all_info = append(all_info, sing_info)
 	}
-	username_np := all_info[0].GithubProfile
-	token := ""
-	username, err := getUsernameFromURL(username_np)
-	profile := fetchProfileData(username, token)
+
 	// Print or process each student's data
 	for _, student := range all_info {
 		fmt.Printf("Name: %s, SRN: %s, CGPA: %.2f, Age: %d, Email: %s, Phone: %s, Degree: %s, Stream: %s, Gender: %s, GitHub: %s, LeetCode: %s, Mentor: %s, Resume: %s\n",
@@ -346,14 +357,14 @@ func main() {
 			log.Printf("Could not find mentor ID for %s: %v", student.MentorID, err)
 			continue
 		}
-		github := Github{
-			GithubID: student.GithubProfile,
-			// StudentID: student.StudentID,
-			StudentID: "PES2UG22CS001",
-			Username:  profile.Username,
-			Bio:       profile.Bio,
-			RepoCount: profile.RepoCount,
-		}
+		// github := Github{
+		// 	GithubID: student.GithubProfile,
+		// 	// StudentID: student.StudentID,
+		// 	StudentID: "PES2UG22CS001",
+		// 	Username:  profile.Username,
+		// 	Bio:       profile.Bio,
+		// 	RepoCount: profile.RepoCount,
+		// }
 		log.Println(mentorID)
 		// student := Student{
 		// 	StudentID: student.StudentID,
@@ -375,12 +386,34 @@ func main() {
 		// }
 		// log.Println("Student inserted successfully")
 
-		err = insertGithub(db, github)
-		if err != nil {
-			log.Fatal("failed to insert github:", err)
-		}
-		log.Println("github intserted successfully")
+		// err = insertGithub(db, github)
+		// if err != nil {
+		// 	log.Fatal("failed to insert github:", err)
+		// }
+		// log.Println("github intserted successfully")
 	}
+	//extracting username
+
+	username_np := all_info[0].GithubProfile
+	token := ""
+	username, err := getUsernameFromURL(username_np)
+	profile := fetchProfileData(username, token)
+
+	//creating structure
+	github := Github{
+		GithubID: all_info[0].GithubProfile,
+		// StudentID: student.StudentID,
+		StudentID: "PES2UG22CS001",
+		Username:  profile.Username,
+		Bio:       profile.Bio,
+		RepoCount: profile.RepoCount,
+	}
+	//inserting into db
+	err = insertGithub(db, github)
+	if err != nil {
+		log.Fatal("failed to insert github:", err)
+	}
+	log.Println("github intserted successfully")
 
 	fmt.Printf("mentor name is %s\n", all_info[0].MentorID)
 	mentorId, err := fetchMentorID(db, all_info[0].MentorID)
@@ -417,13 +450,26 @@ func main() {
 			log.Println("Repository inserted successfully")
 		}
 	}
+	// //extracting leetcode info
+	// for _, student := range all_info {
+	// 	// Process LeetCode Profile
+	// 	if username, err := getUsernameFromURL(student.LeetcodeProfile); err == nil {
+	// 		leetProfile := fetchLeetCodeProfileData(username)
+	// 		fmt.Printf("LeetCode Username: %s, Total Solved: %d, Easy: %d, Medium: %d, Hard: %d\n",
+	// 			leetProfile.Username, leetProfile.TotalSolved, leetProfile.EasySolved, leetProfile.MediumSolved, leetProfile.HardSolved)
+	// 	} else {
+	// 		log.Printf("Skipping invalid LeetCode URL for student %s: %v", student.Name, err)
+	// 	}
+	// }
+	//inserting into table problems
+
 	for _, student := range all_info {
 		// Process LeetCode Profile
 		if username, err := getUsernameFromURL(student.LeetcodeProfile); err == nil {
 			leetProfile := fetchLeetCodeProfileData(username)
 			fmt.Printf("LeetCode Username: %s, Total Solved: %d, Easy: %d, Medium: %d, Hard: %d, Rank: %d\n",
 				leetProfile.Username, leetProfile.TotalSolved, leetProfile.EasySolved, leetProfile.MediumSolved, leetProfile.HardSolved, leetProfile.Ranking)
-				// Prepare the LeetCode struct for insertion
+			// Prepare the LeetCode struct for insertion
 			leetcodeData := LeetCode{
 				LeetCodeID: student.LeetcodeProfile,
 				StudentID:  student.StudentID,
@@ -441,6 +487,42 @@ func main() {
 		} else {
 			log.Printf("Skipping invalid LeetCode URL for student %s: %v", student.Name, err)
 		}
+	}
+	if userleet, err := getUsernameFromURL(all_info[0].LeetcodeProfile); err == nil {
+		leetProfile := fetchLeetCodeProfileData(userleet)
+		fmt.Printf("LeetCode Username: %s, Total Solved: %d, Easy: %d, Medium: %d, Hard: %d, Rank: %d\n",
+			leetProfile.Username, leetProfile.TotalSolved, leetProfile.EasySolved, leetProfile.MediumSolved, leetProfile.HardSolved, leetProfile.Ranking)
+		// Prepare the LeetCode struct for insertion
+		leetcodeData := LeetCode{
+			LeetCodeID: all_info[0].LeetcodeProfile,
+			StudentID:  all_info[0].StudentID,
+			Username:   leetProfile.Username,
+			Rank:       leetProfile.Ranking,
+		}
+		// Insert the LeetCode data
+		err = insertLeetCode(db, leetcodeData)
+		if err != nil {
+			log.Printf("Failed to insert LeetCode data for %s: %v", all_info[0].LeetcodeProfile, err)
+		} else {
+			log.Println("LeetCode data inserted successfully")
+		}
+
+		url := fmt.Sprintf("https://leetcode.com/%s", userleet)
+		println(url)
+		problems := Problems{
+			ProblemID:  counter,
+			LeetcodeID: url,
+			NoEasy:     leetProfile.EasySolved,
+			NoMedium:   leetProfile.MediumSolved,
+			NoHard:     leetProfile.HardSolved,
+		}
+		err = insertProblems(db, problems)
+		if err != nil {
+			log.Fatal("failed to insert problems", err)
+		}
+		log.Println("problems intserted successfully")
+		counter = counter + 1
+
 	}
 
 }
