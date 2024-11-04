@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import backgroundImage from '../assets/Background.svg';
 import welcomeCard from '../assets/welcome_card.svg';
@@ -12,7 +13,7 @@ export const Landing = () => {
     const inputRef = useRef<HTMLInputElement>(null);
     const [scale, setScale] = useState(1);
     const [studentName, setStudentName] = useState('');
-
+    const navigate = useNavigate();
     const validateInput = (value: string) => {
         const regex = /^PES[1-2]UG[0-9]{2}(CS|EC)[0-9]{3}$/;
         return regex.test(value);
@@ -27,12 +28,17 @@ export const Landing = () => {
         if (validateInput(inputValue)) {
             console.log('Valid SRN submitted:', inputValue);
             setIsInputValid(true);
+            
             setShowWrongAnimation(false);
             try {
                 // Make the GET request to the Go backend
-                const response = await axios.get(`http://localhost:8000/student?srn=${inputValue}`);
+                const response = await axios.get(`http://100.102.21.101:8000/student?srn=${inputValue}`);
                 setStudentName(response.data); // Assuming the response directly contains the student name
                 console.log('Student Name:', response.data); // Log the student name
+                const studentName = response.data; // Assuming the response directly contains the student name
+                setStudentName(studentName);
+                console.log('Student Name:', studentName);
+                navigate('/dashboard', { state: { studentName } });
             } catch (error: any) { // Assert error to type 'any'
                 console.error('Error fetching student name:', error);
                 setStudentName(''); // Reset student name if there's an error
