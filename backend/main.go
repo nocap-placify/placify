@@ -426,119 +426,73 @@ func main() {
 			log.Printf("Could not find mentor ID for %s: %v", student.MentorID, err)
 			continue
 		}
-		// github := Github{
-		// 	GithubID: student.GithubProfile,
-		// 	// StudentID: student.StudentID,
-		// 	StudentID: "PES2UG22CS001",
-		// 	Username:  profile.Username,
-		// 	Bio:       profile.Bio,
-		// 	RepoCount: profile.RepoCount,
-		// }
+		username_np := student.GithubProfile
+		token := ""
+		username, err := getUsernameFromURL(username_np)
+		profile := fetchProfileData(username, token)
+		github := Github{
+			GithubID:  student.GithubProfile,
+			StudentID: student.StudentID,
+			// StudentID: "PES2UG22CS001",
+			Username:  profile.Username,
+			Bio:       profile.Bio,
+			RepoCount: profile.RepoCount,
+		}
+		git_prof := student.GithubProfile
 		log.Println(mentorID)
-		// student := Student{
-		// 	StudentID: student.StudentID,
-		// 	Name:      student.Name,
-		// 	PhoneNo:   student.PhoneNo,
-		// 	Dob:       student.DOB,
-		// 	Gender:    student.Gender,
-		// 	Resume:    student.Resume,
-		// 	Sem:       student.Sem,
-		// 	MentorID:  mentorID,
-		// 	CGPA:      student.CGPA,
-		// 	Email:     student.Email,
-		// 	Age:       student.Age,
-		// }
+		student := Student{
+			StudentID: student.StudentID,
+			Name:      student.Name,
+			PhoneNo:   student.PhoneNo,
+			Dob:       student.DOB,
+			Gender:    student.Gender,
+			Resume:    student.Resume,
+			Sem:       student.Sem,
+			MentorID:  mentorID,
+			CGPA:      student.CGPA,
+			Email:     student.Email,
+			Age:       student.Age,
+		}
 
-		// err = insertStudent(db, student)
-		// if err != nil {
-		// 	log.Fatal("failed to insert student:", err)
-		// }
-		// log.Println("Student inserted successfully")
+		err = insertStudent(db, student)
+		if err != nil {
+			log.Fatal("failed to insert student:", err)
+		}
+		log.Println("Student inserted successfully")
 
-		// err = insertGithub(db, github)
-		// if err != nil {
-		// 	log.Fatal("failed to insert github:", err)
-		// }
-		// log.Println("github intserted successfully")
-	}
-	mentorID, err := fetchMentorID(db, all_info[1].MentorID)
-	log.Printf("!!!!!!!!!!inserting INTO STUDENT DB!!!!!USING SQLL!!!!\n")
-	student := Student{
-		StudentID: all_info[1].StudentID,
-		Name:      all_info[1].Name,
-		PhoneNo:   all_info[1].PhoneNo,
-		Dob:       all_info[1].DOB,
-		Gender:    all_info[1].Gender,
-		Resume:    all_info[1].Resume,
-		Sem:       all_info[1].Sem,
-		MentorID:  mentorID,
-		CGPA:      all_info[1].CGPA,
-		Email:     all_info[1].Email,
-		Age:       all_info[1].Age,
-	}
+		err = insertGithub(db, github)
+		if err != nil {
+			log.Fatal("failed to insert github:", err)
+		}
+		log.Println("github intserted successfully")
+		fmt.Printf("Username: %s\n", profile.Username)
+		fmt.Printf("Bio: %s\n", profile.Bio)
+		fmt.Printf("Public Repositories: %s\n", profile.RepoCount)
+		fmt.Println("Pinned Repositories:")
 
-	err = insertStudent(db, student)
-	if err != nil {
-		log.Fatal("failed to insert student:", err)
-	}
-	log.Println("Student inserted successfully")
-
-	username_np := all_info[0].GithubProfile
-	token := ""
-	username, err := getUsernameFromURL(username_np)
-	profile := fetchProfileData(username, token)
-
-	//creating structure
-	github := Github{
-		GithubID: all_info[0].GithubProfile,
-		// StudentID: student.StudentID,
-		StudentID: "PES2UG22CS001",
-		Username:  profile.Username,
-		Bio:       profile.Bio,
-		RepoCount: profile.RepoCount,
-	}
-	//inserting into db
-	err = insertGithub(db, github)
-	if err != nil {
-		log.Fatal("failed to insert github:", err)
-	}
-	log.Println("github intserted successfully")
-
-	fmt.Printf("mentor name is %s\n", all_info[0].MentorID)
-	mentorId, err := fetchMentorID(db, all_info[0].MentorID)
-	fmt.Printf("mentor number is %d\n", mentorId)
-
-	if err != nil {
-		fmt.Println("Error:", err)
-	} else {
-		fmt.Println("Username:", username)
+		// Iterate through each pinned repository and display details
+		for _, repo := range profile.PinnedRepos {
+			fmt.Printf("Repository Name: %s\n", repo.Name)
+			fmt.Printf("About: %s\n", repo.About)
+			fmt.Printf("Languages Used: %s\n", strings.Join(repo.Languages, ", "))
+			test_repo := Repository{
+				RepoID:   git_prof + "/" + repo.Name,
+				GithubID: git_prof,
+				RepoName: repo.Name,
+				Language: strings.Join(repo.Languages, ", "),
+				Desc:     repo.About,
+			}
+			fmt.Printf("testing repository struct repo:%s, git:%s, reponame:%s, lang:%s, desc:%s\n", test_repo.RepoID, test_repo.GithubID, test_repo.RepoName, test_repo.Language, test_repo.Desc)
+			if err := insertRepository(db, test_repo); err != nil {
+				log.Fatalf("Failed to insert repository: %v", err)
+			} else {
+				log.Println("Repository inserted successfully")
+			}
+		}
 	}
 
 	// Display profile information
-	fmt.Printf("Username: %s\n", profile.Username)
-	fmt.Printf("Bio: %s\n", profile.Bio)
-	fmt.Printf("Public Repositories: %s\n", profile.RepoCount)
-	fmt.Println("Pinned Repositories:")
 
-	// Iterate through each pinned repository and display details
-	for _, repo := range profile.PinnedRepos {
-		fmt.Printf("Repository Name: %s\n", repo.Name)
-		fmt.Printf("About: %s\n", repo.About)
-		fmt.Printf("Languages Used: %s\n", strings.Join(repo.Languages, ", "))
-		test_repo := Repository{
-			RepoID:   all_info[0].GithubProfile + "/" + repo.Name,
-			GithubID: all_info[0].GithubProfile,
-			RepoName: repo.Name,
-			Language: strings.Join(repo.Languages, ", "),
-			Desc:     repo.About,
-		}
-		fmt.Printf("testing repository struct repo:%s, git:%s, reponame:%s, lang:%s, desc:%s\n", test_repo.RepoID, test_repo.GithubID, test_repo.RepoName, test_repo.Language, test_repo.Desc)
-		if err := insertRepository(db, test_repo); err != nil {
-			log.Fatalf("Failed to insert repository: %v", err)
-		} else {
-			log.Println("Repository inserted successfully")
-		}
-	}
 	// //extracting leetcode info
 	// for _, student := range all_info {
 	// 	// Process LeetCode Profile
@@ -576,42 +530,42 @@ func main() {
 		} else {
 			log.Printf("Skipping invalid LeetCode URL for student %s: %v", student.Name, err)
 		}
-	}
-	if userleet, err := getUsernameFromURL(all_info[0].LeetcodeProfile); err == nil {
-		leetProfile := fetchLeetCodeProfileData(userleet)
-		fmt.Printf("LeetCode Username: %s, Total Solved: %d, Easy: %d, Medium: %d, Hard: %d, Rank: %d\n",
-			leetProfile.Username, leetProfile.TotalSolved, leetProfile.EasySolved, leetProfile.MediumSolved, leetProfile.HardSolved, leetProfile.Ranking)
-		// Prepare the LeetCode struct for insertion
-		leetcodeData := LeetCode{
-			LeetCodeID: all_info[0].LeetcodeProfile,
-			StudentID:  all_info[0].StudentID,
-			Username:   leetProfile.Username,
-			Rank:       leetProfile.Ranking,
-		}
-		// Insert the LeetCode data
-		err = insertLeetCode(db, leetcodeData)
-		if err != nil {
-			log.Printf("Failed to insert LeetCode data for %s: %v", all_info[0].LeetcodeProfile, err)
-		} else {
-			log.Println("LeetCode data inserted successfully")
-		}
+		if userleet, err := getUsernameFromURL(student.LeetcodeProfile); err == nil {
+			leetProfile := fetchLeetCodeProfileData(userleet)
+			fmt.Printf("LeetCode Username: %s, Total Solved: %d, Easy: %d, Medium: %d, Hard: %d, Rank: %d\n",
+				leetProfile.Username, leetProfile.TotalSolved, leetProfile.EasySolved, leetProfile.MediumSolved, leetProfile.HardSolved, leetProfile.Ranking)
+			// Prepare the LeetCode struct for insertion
+			leetcodeData := LeetCode{
+				LeetCodeID: student.LeetcodeProfile,
+				StudentID:  student.StudentID,
+				Username:   leetProfile.Username,
+				Rank:       leetProfile.Ranking,
+			}
+			// Insert the LeetCode data
+			err = insertLeetCode(db, leetcodeData)
+			if err != nil {
+				log.Printf("Failed to insert LeetCode data for %s: %v", all_info[0].LeetcodeProfile, err)
+			} else {
+				log.Println("LeetCode data inserted successfully")
+			}
 
-		url := fmt.Sprintf("https://leetcode.com/%s", userleet)
-		println(url)
-		problems := Problems{
-			ProblemID:  counter,
-			LeetcodeID: url,
-			NoEasy:     leetProfile.EasySolved,
-			NoMedium:   leetProfile.MediumSolved,
-			NoHard:     leetProfile.HardSolved,
-		}
-		err = insertProblems(db, problems)
-		if err != nil {
-			log.Fatal("failed to insert problems", err)
-		}
-		log.Println("problems intserted successfully")
-		counter = counter + 1
+			url := fmt.Sprintf("https://leetcode.com/%s", userleet)
+			println(url)
+			problems := Problems{
+				ProblemID:  counter,
+				LeetcodeID: url,
+				NoEasy:     leetProfile.EasySolved,
+				NoMedium:   leetProfile.MediumSolved,
+				NoHard:     leetProfile.HardSolved,
+			}
+			err = insertProblems(db, problems)
+			if err != nil {
+				log.Fatal("failed to insert problems", err)
+			}
+			log.Println("problems intserted successfully")
+			counter = counter + 1
 
+		}
 	}
 
 	fmt.Printf("!!!done setting up database!!!")
