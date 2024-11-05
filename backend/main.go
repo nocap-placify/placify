@@ -504,6 +504,7 @@ func GetLeetcode(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 func GetResume(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	srn := r.URL.Query().Get("srn")
 
+	// Query to get the resume file path
 	var path string
 	result := db.Raw("SELECT resume FROM student WHERE student_id = ?", srn).Scan(&path)
 	if result.Error != nil {
@@ -518,8 +519,26 @@ func GetResume(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Printf("Resume Path: %s\n", path)
 
-	fmt.Fprintf(w, path)
+	// Open the resume file
+	file, err := os.Open(path)
+	if err != nil {
+		fmt.Printf("Could not open file: %v\n", err)
+		http.Error(w, "File not found", http.StatusNotFound)
+		return
+	}
+	defer file.Close()
 
+	// Set headers to serve the PDF
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", "inline; filename=resume.pdf")
+
+	// Copy the file content to the response writer
+	_, err = io.Copy(w, file)
+	if err != nil {
+		fmt.Printf("Error while sending file: %v\n", err)
+		http.Error(w, "Error serving file", http.StatusInternalServerError)
+		return
+	}
 }
 
 func main() {

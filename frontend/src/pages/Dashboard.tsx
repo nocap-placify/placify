@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Document, Page } from 'react-pdf';
 import { Card } from "../components/card";
 import Background from '../assets/backgroundblue.png';
 import { FaGithub } from 'react-icons/fa';
@@ -81,8 +82,17 @@ export const Dashboard = () => {
 
   const fetchResumeData = async (srn) => {
     try {
-      const response = await axios.get(`http://100.102.21.101:8000/getResume?srn=${srn}`);
-      setResumeData(response.data); // Assuming API returns { resumeText: "Resume content here" }
+      const response = await axios.get(`http://100.102.21.101:8000/getResume?srn=${srn}`, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = (error) => reject(error);
+        reader.readAsDataURL(blob);
+      });
+      setResumeData(base64.split(',')[1]);
     } catch (error) {
       console.error("Error fetching resume data:", error);
       setResumeData("Error loading resume data. Please try again later.");
@@ -244,12 +254,20 @@ export const Dashboard = () => {
     );
     await fetchResumeData(studentSRN);
     setModalContent(
-      <div className="p-6 bg-white rounded-lg shadow-lg">
+      <div className="p-6 bg-white rounded-lg shadow-lg flex flex-col items-center">
         <h2 className="text-2xl font-bold text-gray-800 mb-4">Resume</h2>
-        <p className="text-gray-600 whitespace-pre-wrap">{resumeData}</p>
+        <div className="w-full h-[600px] overflow-y-auto">
+          <Document
+            file={`data:application/pdf;base64,${resumeData}`}
+            onLoadError={(error) => console.error("Error loading PDF:", error)}
+          >
+            <Page pageNumber={1} />
+          </Document>
+        </div>
       </div>
     );
   };
+  
 
 
   const closeModal = () => {
