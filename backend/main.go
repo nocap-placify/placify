@@ -367,10 +367,26 @@ func GetStudentName(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 
 func GetStudentGithub(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	srn := r.URL.Query().Get("srn")
-	var gitID string
 
-	// Step 1: Retrieve the github_id associated with the student using a raw SQL query
-	res := db.Raw("SELECT github_id FROM github WHERE student_id = ?", srn).Scan(&gitID)
+	// Struct to hold the result of the JOIN query
+	type RepoResult struct {
+		GithubID    string `json:"github_id"`
+		RepoID      string `json:"repo_id"`
+		RepoName    string `json:"repo_name"`
+		Language    string `json:"language"`
+		Description string `json:"description"`
+	}
+
+	var results []RepoResult
+
+	// Run a JOIN query to retrieve github_id and associated repository details
+	res := db.Raw(`
+		SELECT g.github_id, r.repo_id, r.repo_name, r.language, r.description
+		FROM github g
+		JOIN repository r ON g.github_id = r.github_id
+		WHERE g.student_id = ?`, srn).Scan(&results)
+
+	// Error handling for query execution
 	if res.Error != nil {
 		if res.Error == gorm.ErrRecordNotFound {
 			http.Error(w, "Student not found", http.StatusNotFound)
@@ -380,26 +396,40 @@ func GetStudentGithub(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Step 2: Retrieve the repositories associated with the retrieved github_id using a raw SQL query
-	var repositories []struct {
-		RepoID      string `json:"repo_id"`
-		RepoName    string `json:"repo_name"`
-		Language    string `json:"language"`
-		Description string `json:"description"`
-	}
-	repoRes := db.Raw("SELECT repo_id, repo_name, language, description FROM repository WHERE github_id = ?", gitID).Scan(&repositories)
-	if repoRes.Error != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	// Check if any repositories were found
+	if len(results) == 0 {
+		http.Error(w, "No repositories found for this student", http.StatusNotFound)
 		return
 	}
 
-	// Prepare the JSON response structure
+	// Extract GithubID and repositories for the response
 	response := struct {
-		GithubID     string      `json:"github_id"`
-		Repositories interface{} `json:"repositories"`
+		GithubID     string `json:"github_id"`
+		Repositories []struct {
+			RepoID      string `json:"repo_id"`
+			RepoName    string `json:"repo_name"`
+			Language    string `json:"language"`
+			Description string `json:"description"`
+		} `json:"repositories"`
 	}{
-		GithubID:     gitID,
-		Repositories: repositories,
+		GithubID: results[0].GithubID, // GithubID is the same for all entries
+	}
+
+	fmt.Printf("results fetched for githubID: %s", response.GithubID)
+
+	// Append repository details to the response
+	for _, result := range results {
+		response.Repositories = append(response.Repositories, struct {
+			RepoID      string `json:"repo_id"`
+			RepoName    string `json:"repo_name"`
+			Language    string `json:"language"`
+			Description string `json:"description"`
+		}{
+			RepoID:      result.RepoID,
+			RepoName:    result.RepoName,
+			Language:    result.Language,
+			Description: result.Description,
+		})
 	}
 
 	// Set Content-Type header and encode response as JSON
