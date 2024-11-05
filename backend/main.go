@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -500,6 +501,27 @@ func GetLeetcode(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func GetResume(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+	srn := r.URL.Query().Get("srn")
+
+	var path string
+	result := db.Raw("SELECT resume FROM student WHERE student_id = ?", srn).Scan(&path)
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			fmt.Println("Student not found")
+			http.Error(w, "Student not found", http.StatusNotFound)
+		} else {
+			fmt.Printf("Couldn't retrieve record: %v\n", result.Error)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+		}
+		return
+	}
+	fmt.Printf("Resume Path: %s\n", path)
+
+	fmt.Fprintf(w, path)
+
+}
+
 func main() {
 	counter := 0
 	dsn := "host=100.102.21.101 user=postgres password=dbms_porj dbname=dbms_project port=5432 sslmode=disable TimeZone=Asia/Shanghai"
@@ -583,6 +605,9 @@ func main() {
 			Email:     student.Email,
 			Age:       student.Age,
 		}
+
+		resumePath := filepath.Join("/home/suraj/Documents", student.Resume)
+		student.Resume = resumePath
 
 		err = insertStudent(db, student)
 		if err != nil {
@@ -695,6 +720,10 @@ func main() {
 
 	http.HandleFunc("/getLeetcode", func(w http.ResponseWriter, r *http.Request) {
 		GetLeetcode(db, w, r)
+	})
+
+	http.HandleFunc("/getResume", func(w http.ResponseWriter, r *http.Request) {
+		GetResume(db, w, r)
 	})
 	fmt.Println("Server is running on port 8000")
 	http.ListenAndServe(":8000", handlers.CORS()(http.DefaultServeMux))
