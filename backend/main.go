@@ -415,6 +415,8 @@ func GetStudentGithub(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		GithubID: results[0].GithubID, // GithubID is the same for all entries
 	}
 
+	fmt.Printf("results fetched for githubID: %s", response.GithubID)
+
 	// Append repository details to the response
 	for _, result := range results {
 		response.Repositories = append(response.Repositories, struct {
