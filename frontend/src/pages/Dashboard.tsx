@@ -46,8 +46,9 @@ export const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [modalContent, setModalContent] = useState<React.ReactNode>(null);
-  const [githubData, setGithubData] = useState<GitHubData | null>(null); // State to hold GitHub data
-
+  const [githubData, setGithubData] = useState<GitHubData | null>(null);
+  const [isGithubLoading, setIsGithubLoading] = useState(false);
+  
   // Preload background image
   useEffect(() => {
     const img = new Image();
@@ -56,44 +57,96 @@ export const Dashboard = () => {
   }, []);
   
   const fetchData = async (srn: string) => {
+    setIsGithubLoading(true);
     try {
       const response = await axios.get(`http://100.102.21.101:8000/getGithub?srn=${srn}`);
-      setGithubData(response.data); // Store fetched data in state
+      setGithubData(response.data);
+      return response.data;
     } catch (error) {
       console.error('Error fetching data:', error);
+      return null;
+    } finally {
+      setIsGithubLoading(false);
     }
   };
 
   const handleCardClick = async (type: string, srn: string) => {
     if (!srn) {
       console.error('SRN is undefined');
-      return; // Prevent the function from executing if srn is undefined
+      return;
     }
-    await fetchData(srn); // Wait for the data to be fetched
+    
+    setShowModal(true);
+    
     if (type === 'GitHub') {
-      if (githubData) {
+      setModalContent(
+        <div className="flex items-center justify-center p-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+        </div>
+      );
+      
+      const data = await fetchData(srn);
+      
+      if (data) {
+        const githubProfileUrl = data.github_id;
+        const githubUsername = githubProfileUrl.split('/').pop();
+  
         setModalContent(
-          <div>
-            <h2>GitHub ID: {githubData.github_id}</h2>
-            <h3>Repositories:</h3>
-            <ul>
-              {githubData.repositories.map(repo => (
-                <li key={repo.repo_id}>
-                  <strong>{repo.repo_name}</strong> - {repo.description} (Language: {repo.language})
-                </li>
-              ))}
-            </ul>
+          <div className="flex flex-col h-full max-h-[70vh]">
+            <div className="p-6 bg-white rounded-t-lg">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center sticky top-0">
+                <FaGithub className="mr-2 text-gray-800" />
+                GitHub: 
+                <a 
+                  href={githubProfileUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-blue-600 hover:underline ml-2 transition duration-300"
+                  title="View GitHub Profile"
+                >
+                  {githubUsername}
+                </a>
+              </h2>
+              <h3 className="text-xl font-semibold text-gray-700 mb-2">Repositories:</h3>
+            </div>
+            <div className="flex-1 overflow-y-auto px-6 pb-6">
+              <ul className="space-y-4">
+                {data.repositories.map(repo => (
+                  <li key={repo.repo_id} className="border rounded-lg p-4 bg-gray-50 hover:bg-gray-100 transition duration-300">
+                    <h4 className="text-lg font-bold text-gray-800">
+                      <a 
+                        href={`${data.github_id}/${repo.repo_name}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-500 hover:underline"
+                      >
+                        {repo.repo_name}
+                      </a>
+                    </h4>
+                    <p className="text-gray-600">{repo.description}</p>
+                    <span className="inline-block mt-2 text-sm font-medium text-gray-500">Language: {repo.language}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        );
+      } else {
+        setModalContent(
+          <div className="p-6 bg-white rounded-lg shadow-lg">
+            <h2 className="text-xl font-bold text-red-600">Error loading GitHub data</h2>
+            <p className="text-gray-600">Please try again later.</p>
           </div>
         );
       }
     } else if (type === 'LeetCode') {
       setModalContent(<div>LeetCode statistics and activities fetched from the database...</div>);
     }
-    setShowModal(true);
   };
 
   const closeModal = () => {
     setShowModal(false);
+    setModalContent(null);
   };
 
   return (
@@ -176,14 +229,16 @@ export const Dashboard = () => {
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-gray-800 bg-opacity-90 flex items-center justify-center p-4"
             >
-              <div className="bg-white text-black rounded-lg p-8 w-full max-w-4xl shadow-lg relative">
+              <div className="bg-white text-black rounded-lg w-full max-w-4xl shadow-lg relative">
                 <button 
                   onClick={closeModal} 
-                  className="absolute top-2 right-4 text-xl bg-red-500 text-white px-2 py-1 rounded"
+                  className="absolute top-2 right-4 text-xl bg-red-500 text-white px-2 py-1 rounded z-50"
                 >
                   ✖
                 </button>
-                <div>{modalContent}</div>
+                <div className="max-h-[80vh]">
+                  {modalContent}
+                </div>
               </div>
             </motion.div>
           )}
