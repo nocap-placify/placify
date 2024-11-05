@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from "../components/card";
-import Background from '../assets/Dash_Background.png';
+import Background from '../assets/backgroundblue.png';
 import { FaGithub, FaLinkedin } from 'react-icons/fa';
 import { SiLeetcode, SiHackerrank } from 'react-icons/si';
 import { s } from 'framer-motion/client';
@@ -29,7 +29,6 @@ const item = {
 export const Dashboard = () => {
   const location = useLocation();
   const studentName = location.state?.studentName || 'Unknown Student';
-  
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {

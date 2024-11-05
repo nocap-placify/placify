@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import backgroundImage from '../assets/Background.svg';
+import backgroundImage from '../assets/backgroundblue.png';
 import welcomeCard from '../assets/welcome_card.svg';
-import Welcome from '../assets/Welcome.svg';
+import Welcome from '../assets/Welcome6.svg';
 
 export const Landing = () => {
     const [isInputActive, setIsInputActive] = useState(false);
@@ -158,6 +158,7 @@ export const Landing = () => {
                                     color: 'white',
                                     fontSize: '18px',
                                     outline: 'none',
+                                    
                                     padding: '14px 18px',
                                 }}
                                 onFocus={() => setIsInputActive(true)}
