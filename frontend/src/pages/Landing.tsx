@@ -5,6 +5,8 @@ import backgroundImage from '../assets/backgroundblue.png';
 import welcomeCard from '../assets/welcome_card.svg';
 import Welcome from '../assets/Welcome6.svg';
 
+
+
 export const Landing = () => {
     const [isInputActive, setIsInputActive] = useState(false);
     const [inputValue, setInputValue] = useState('');
