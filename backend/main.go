@@ -373,9 +373,9 @@ func GetStudentGithub(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	res := db.Raw("SELECT github_id FROM github WHERE student_id = ?", srn).Scan(&gitID)
 	if res.Error != nil {
 		if res.Error == gorm.ErrRecordNotFound {
-			fmt.Println("student not found")
+			http.Error(w, "Student not found", http.StatusNotFound)
 		} else {
-			fmt.Printf("couldn't retrieve record: %v\n", res.Error)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
 		}
 		return
 	}
@@ -389,15 +389,24 @@ func GetStudentGithub(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	}
 	repoRes := db.Raw("SELECT repo_id, repo_name, language, description FROM repository WHERE github_id = ?", gitID).Scan(&repositories)
 	if repoRes.Error != nil {
-		fmt.Printf("couldn't retrieve repositories: %v\n", repoRes.Error)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	// Print the github_id and repositories
-	fmt.Printf("Github ID: %s\n", gitID)
-	fmt.Println("Repositories:")
-	for _, repo := range repositories {
-		fmt.Printf("Repo ID: %s, Repo Name: %s, Language: %s, Description: %s\n", repo.RepoID, repo.RepoName, repo.Language, repo.Description)
+	// Prepare the JSON response structure
+	response := struct {
+		GithubID     string      `json:"github_id"`
+		Repositories interface{} `json:"repositories"`
+	}{
+		GithubID:     gitID,
+		Repositories: repositories,
+	}
+
+	// Set Content-Type header and encode response as JSON
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
 	}
 }
 
