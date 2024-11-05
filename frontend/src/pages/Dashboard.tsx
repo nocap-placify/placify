@@ -7,7 +7,6 @@ import Background from '../assets/backgroundblue.png';
 import { FaGithub } from 'react-icons/fa';
 import { SiLeetcode } from 'react-icons/si';
 
-// Animation variants
 const container = {
   hidden: { opacity: 0 },
   visible: {
@@ -26,6 +25,7 @@ const item = {
     opacity: 1
   }
 };
+
 interface LeetcodeData {
   leetcode_id: string;
   ranking: number;
@@ -54,11 +54,11 @@ export const Dashboard = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalContent, setModalContent] = useState<React.ReactNode>(null);
   const [githubData, setGithubData] = useState<GitHubData | null>(null);
+  const [leetcodeData, setLeetcodeData] = useState<LeetcodeData | null>(null);
+  const [resumeData, setResumeData] = useState<string | null>(null); // New state for resume
   const [isGithubLoading, setIsGithubLoading] = useState(false);
-  const [leetcodeData, setLeetcodeData] = useState<LeetcodeData | null>(null); // State to hold LeetCode data
   const [isLeetcodeLoading, setIsLeetcodeLoading] = useState(false);
 
-  // Preload background image
   useEffect(() => {
     const img = new Image();
     img.src = Background;
@@ -77,6 +77,17 @@ export const Dashboard = () => {
     } finally {
       setIsGithubLoading(false);
     }
+  };
+
+  const fetchResumeData = async (srn) => {
+    try {
+      const response = await axios.get(`http://100.102.21.101:8000/getResume?srn=${srn}`);
+      setResumeData(response.data); // Assuming API returns { resumeText: "Resume content here" }
+    } catch (error) {
+      console.error("Error fetching resume data:", error);
+      setResumeData("Error loading resume data. Please try again later.");
+    }
+    setShowModal(true);
   };
 
   const fetchLeetcodeData = async (srn: string) => {
@@ -221,6 +232,26 @@ export const Dashboard = () => {
     }
   };
 
+  const handleResumeClick = async () => {
+    if (!studentSRN) {
+      console.error("SRN is undefined");
+      return;
+    }
+    setModalContent(
+      <div className="flex items-center justify-center p-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+      </div>
+    );
+    await fetchResumeData(studentSRN);
+    setModalContent(
+      <div className="p-6 bg-white rounded-lg shadow-lg">
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">Resume</h2>
+        <p className="text-gray-600 whitespace-pre-wrap">{resumeData}</p>
+      </div>
+    );
+  };
+
+
   const closeModal = () => {
     setShowModal(false);
     setModalContent(null);
@@ -297,6 +328,12 @@ export const Dashboard = () => {
                 />
               </motion.div>
             </motion.div>
+            <button 
+              onClick={handleResumeClick}
+              className="mt-6 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-300"
+            >
+              View Resume
+            </button>
           </main>
 
           {showModal && (
