@@ -367,10 +367,26 @@ func GetStudentName(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 
 func GetStudentGithub(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	srn := r.URL.Query().Get("srn")
-	var gitID string
 
-	// Step 1: Retrieve the github_id associated with the student using a raw SQL query
-	res := db.Raw("SELECT github_id FROM github WHERE student_id = ?", srn).Scan(&gitID)
+	// Step 1: Retrieve the github_id and associated repositories using a JOIN query
+	var result struct {
+		GithubID     string `json:"github_id"`
+		Repositories []struct {
+			RepoID      string `json:"repo_id"`
+			RepoName    string `json:"repo_name"`
+			Language    string `json:"language"`
+			Description string `json:"description"`
+		} `json:"repositories"`
+	}
+
+	// Run the JOIN query to get github_id and associated repository details
+	res := db.Raw(`
+		SELECT g.github_id, r.repo_id, r.repo_name, r.language, r.description
+		FROM github g
+		JOIN repository r ON g.github_id = r.github_id
+		WHERE g.student_id = ?`, srn).Scan(&result.Repositories)
+
+	// Check for errors in the query execution
 	if res.Error != nil {
 		if res.Error == gorm.ErrRecordNotFound {
 			http.Error(w, "Student not found", http.StatusNotFound)
@@ -380,27 +396,22 @@ func GetStudentGithub(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Step 2: Retrieve the repositories associated with the retrieved github_id using a raw SQL query
-	var repositories []struct {
-		RepoID      string `json:"repo_id"`
-		RepoName    string `json:"repo_name"`
-		Language    string `json:"language"`
-		Description string `json:"description"`
-	}
-	repoRes := db.Raw("SELECT repo_id, repo_name, language, description FROM repository WHERE github_id = ?", gitID).Scan(&repositories)
-	if repoRes.Error != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	// If there are results, set the GithubID
+	if len(result.Repositories) > 0 {
+		result.GithubID = result.Repositories[0].GithubID
+	} else {
+		http.Error(w, "No repositories found for this student", http.StatusNotFound)
 		return
 	}
 
-	// Prepare the JSON response structure
-	response := struct {
-		GithubID     string      `json:"github_id"`
-		Repositories interface{} `json:"repositories"`
-	}{
-		GithubID:     gitID,
-		Repositories: repositories,
+	// Set Content-Type header and encode response as JSON
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(result); err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
 	}
+}
+
 
 	// Set Content-Type header and encode response as JSON
 	w.Header().Set("Content-Type", "application/json")
