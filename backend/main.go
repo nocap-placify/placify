@@ -152,9 +152,9 @@ func (Repository) TableName() string {
 func insertStudent(db *gorm.DB, student Student) error {
 	// Prepare the SQL query to insert a new student
 	query := `
-		INSERT INTO student 
-		(student_id, name, phone_no, dob, gender, resume, sem, mentor_id, cgpa, email, age) 
-		VALUES 
+		INSERT INTO student
+		(student_id, name, phone_no, dob, gender, resume, sem, mentor_id, cgpa, email, age)
+		VALUES
 		($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 	`
 	err := db.Exec(query, student.StudentID, student.Name, student.PhoneNo, student.Dob, student.Gender,
@@ -365,22 +365,55 @@ func GetStudentName(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, name)
 }
 
+func GetStudentGithub(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+	srn := r.URL.Query().Get("srn")
+	var gitID string
+
+	// Step 1: Retrieve the github_id associated with the student using a raw SQL query
+	res := db.Raw("SELECT github_id FROM github WHERE student_id = ?", srn).Scan(&gitID)
+	if res.Error != nil {
+		if res.Error == gorm.ErrRecordNotFound {
+			fmt.Println("student not found")
+		} else {
+			fmt.Printf("couldn't retrieve record: %v\n", res.Error)
+		}
+		return
+	}
+
+	// Step 2: Retrieve the repositories associated with the retrieved github_id using a raw SQL query
+	var repositories []struct {
+		RepoID      string `json:"repo_id"`
+		RepoName    string `json:"repo_name"`
+		Language    string `json:"language"`
+		Description string `json:"description"`
+	}
+	repoRes := db.Raw("SELECT repo_id, repo_name, language, description FROM repository WHERE github_id = ?", gitID).Scan(&repositories)
+	if repoRes.Error != nil {
+		fmt.Printf("couldn't retrieve repositories: %v\n", repoRes.Error)
+		return
+	}
+
+	// Print the github_id and repositories
+	fmt.Printf("Github ID: %s\n", gitID)
+	fmt.Println("Repositories:")
+	for _, repo := range repositories {
+		fmt.Printf("Repo ID: %s, Repo Name: %s, Language: %s, Description: %s\n", repo.RepoID, repo.RepoName, repo.Language, repo.Description)
+	}
+}
+
 func main() {
 	counter := 0
-	//database connection
 	dsn := "host=100.102.21.101 user=postgres password=dbms_porj dbname=dbms_project port=5432 sslmode=disable TimeZone=Asia/Shanghai"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
 	}
 
-	// Test the connection by executing a simple query
 	sqlDB, err := db.DB()
 	if err != nil {
 		panic("failed to get database handle")
 	}
 
-	// Ping the database to verify connection
 	err = sqlDB.Ping()
 	if err != nil {
 		panic("failed to ping database")
@@ -414,7 +447,6 @@ func main() {
 		all_info = append(all_info, sing_info)
 	}
 
-	// Print or process each student's data
 	for _, student := range all_info {
 		fmt.Printf("Name: %s, SRN: %s, CGPA: %.2f, Age: %d, Email: %s, Phone: %s, Degree: %s, Stream: %s, Gender: %s, GitHub: %s, LeetCode: %s, Mentor: %s, Resume: %s\n",
 			student.Name, student.StudentID, student.CGPA, student.Age, student.Email, student.PhoneNo,
@@ -433,7 +465,6 @@ func main() {
 		github := Github{
 			GithubID:  student.GithubProfile,
 			StudentID: student.StudentID,
-			// StudentID: "PES2UG22CS001",
 			Username:  profile.Username,
 			Bio:       profile.Bio,
 			RepoCount: profile.RepoCount,
@@ -490,21 +521,6 @@ func main() {
 			}
 		}
 	}
-
-	// Display profile information
-
-	// //extracting leetcode info
-	// for _, student := range all_info {
-	// 	// Process LeetCode Profile
-	// 	if username, err := getUsernameFromURL(student.LeetcodeProfile); err == nil {
-	// 		leetProfile := fetchLeetCodeProfileData(username)
-	// 		fmt.Printf("LeetCode Username: %s, Total Solved: %d, Easy: %d, Medium: %d, Hard: %d\n",
-	// 			leetProfile.Username, leetProfile.TotalSolved, leetProfile.EasySolved, leetProfile.MediumSolved, leetProfile.HardSolved)
-	// 	} else {
-	// 		log.Printf("Skipping invalid LeetCode URL for student %s: %v", student.Name, err)
-	// 	}
-	// }
-	//inserting into table problems
 
 	for _, student := range all_info {
 		// Process LeetCode Profile
@@ -574,6 +590,9 @@ func main() {
 		GetStudentName(db, w, r)
 	})
 
+	http.HandleFunc("/getGithub", func(w http.ResponseWriter, r *http.Request) {
+		GetStudentGithub(db, w, r)
+	})
 	fmt.Println("Server is running on port 8000")
 	http.ListenAndServe(":8000", handlers.CORS()(http.DefaultServeMux))
 
