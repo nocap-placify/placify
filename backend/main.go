@@ -440,6 +440,66 @@ func GetStudentGithub(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func GetLeetcode(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+	srn := r.URL.Query().Get("srn")
+
+	// Step 1: Define a struct to hold the result of the JOIN query
+	type LeetcodeResult struct {
+		LeetcodeID string `json:"leetcode_id"`
+		Ranking    int    `json:"ranking"`
+		NoEasy     int    `json:"no_easy"`
+		NoMedium   int    `json:"no_medium"`
+		NoHard     int    `json:"no_hard"`
+	}
+
+	var result LeetcodeResult
+
+	// Step 2: Run a JOIN query to fetch leetcode_id, ranking, and the counts of easy, medium, and hard problems
+	res := db.Raw(`
+		SELECT l.leetcode_id, l.ranking, p.no_easy, p.no_medium, p.no_hard
+		FROM leetcode l
+		JOIN problems p ON l.leetcode_id = p.leetcode_id
+		WHERE l.student_id = ?
+	`, srn).Scan(&result)
+
+	// Step 3: Error handling for query execution
+	if res.Error != nil {
+		if res.Error == gorm.ErrRecordNotFound {
+			http.Error(w, "Student not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	// Step 4: Calculate the total problems solved
+	totalSolved := result.NoEasy + result.NoMedium + result.NoHard
+
+	// Step 5: Create a JSON response
+	response := struct {
+		LeetcodeID   string `json:"leetcode_id"`
+		Ranking      int    `json:"ranking"`
+		EasySolved   int    `json:"easy_solved"`
+		MediumSolved int    `json:"medium_solved"`
+		HardSolved   int    `json:"hard_solved"`
+		TotalSolved  int    `json:"total_solved"`
+	}{
+		LeetcodeID:   result.LeetcodeID,
+		Ranking:      result.Ranking,
+		EasySolved:   result.NoEasy,
+		MediumSolved: result.NoMedium,
+		HardSolved:   result.NoHard,
+		TotalSolved:  totalSolved,
+	}
+
+	// Step 6: Set Content-Type header and encode response as JSON
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+}
+
 func main() {
 	counter := 0
 	dsn := "host=100.102.21.101 user=postgres password=dbms_porj dbname=dbms_project port=5432 sslmode=disable TimeZone=Asia/Shanghai"
@@ -631,6 +691,10 @@ func main() {
 
 	http.HandleFunc("/getGithub", func(w http.ResponseWriter, r *http.Request) {
 		GetStudentGithub(db, w, r)
+	})
+
+	http.HandleFunc("/getLeetcode", func(w http.ResponseWriter, r *http.Request) {
+		GetLeetcode(db, w, r)
 	})
 	fmt.Println("Server is running on port 8000")
 	http.ListenAndServe(":8000", handlers.CORS()(http.DefaultServeMux))
