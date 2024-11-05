@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from "../components/card";
-import Background from '../assets/Dash_Background.png';
+import Background from '../assets/backgroundblue.png';
 import { FaGithub, FaLinkedin } from 'react-icons/fa';
 import { SiLeetcode, SiHackerrank } from 'react-icons/si';
+import { s } from 'framer-motion/client';
 
 const container = {
   hidden: { opacity: 0 },
@@ -25,6 +27,8 @@ const item = {
 };
 
 export const Dashboard = () => {
+  const location = useLocation();
+  const studentName = location.state?.studentName || 'Unknown Student';
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -70,7 +74,7 @@ export const Dashboard = () => {
               <div className="flex items-center justify-center mb-4">
             <img className="w-20 h-20 rounded-full mr-4" src="https://avatar.iran.liara.run/public/36" alt="David's avatar" />
             <h1 className="text-4xl font-bold text-amber-100">
-              Hello, I'm David – <br />Crafting Creative Code!
+                  Hello, {studentName} – <br />Crafting Creative Code!
             </h1>
           </div>
           <p className="text-amber-200 max-w-2xl mx-auto">
