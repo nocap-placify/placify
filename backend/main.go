@@ -625,7 +625,7 @@ func main() {
 			Age:       student.Age,
 		}
 
-		resumePath := filepath.Join("/home/suraj/Documents", student.Resume)
+		resumePath := filepath.Join("/home/suraj/Documents/Resumes", student.Resume)
 		student.Resume = resumePath
 
 		err = insertStudent(db, student)
