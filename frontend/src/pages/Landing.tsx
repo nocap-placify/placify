@@ -38,7 +38,7 @@ export const Landing = () => {
                 const studentName = response.data; // Assuming the response directly contains the student name
                 setStudentName(studentName);
                 console.log('Student Name:', studentName);
-                navigate('/dashboard', { state: { studentName } });
+                navigate('/dashboard', { state: { studentName, srn: inputValue } });
             } catch (error: any) { // Assert error to type 'any'
                 console.error('Error fetching student name:', error);
                 setStudentName(''); // Reset student name if there's an error

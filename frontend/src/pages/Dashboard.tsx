@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from "../components/card";
 import Background from '../assets/backgroundblue.png';
-import { FaGithub, FaLinkedin } from 'react-icons/fa';
-import { SiLeetcode, SiHackerrank } from 'react-icons/si';
+import { FaGithub } from 'react-icons/fa';
+import { SiLeetcode } from 'react-icons/si';
 
+// Animation variants
 const container = {
   hidden: { opacity: 0 },
   visible: {
@@ -25,22 +27,65 @@ const item = {
   }
 };
 
+// Define types for GitHub data
+interface Repository {
+  repo_id: string;
+  repo_name: string;
+  language: string;
+  description: string;
+}
+
+interface GitHubData {
+  github_id: string;
+  repositories: Repository[];
+}
+
 export const Dashboard = () => {
   const location = useLocation();
-  const studentName = location.state?.studentName || 'Unknown Student';
+  const { studentName, srn: studentSRN } = location.state || {};
   const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [modalContent, setModalContent] = useState(null);
+  const [modalContent, setModalContent] = useState<React.ReactNode>(null);
+  const [githubData, setGithubData] = useState<GitHubData | null>(null); // State to hold GitHub data
 
+  // Preload background image
   useEffect(() => {
     const img = new Image();
     img.src = Background;
     img.onload = () => setIsLoading(false);
   }, []);
+  
+  const fetchData = async (srn: string) => {
+    try {
+      const response = await axios.get(`http://100.102.21.101:8000/getGithub?srn=${srn}`);
+      setGithubData(response.data); // Store fetched data in state
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+  };
 
-  const handleCardClick = (type) => {
+  const handleCardClick = async (type: string, srn: string) => {
+    if (!srn) {
+      console.error('SRN is undefined');
+      return; // Prevent the function from executing if srn is undefined
+    }
+    await fetchData(srn); // Wait for the data to be fetched
     if (type === 'GitHub') {
-      setModalContent(<div>GitHub data fetched from the database...</div>);
+      if (githubData) {
+        setModalContent(
+          <div>
+            <h2>GitHub ID: {githubData.github_id}</h2>
+            <h3>Repositories:</h3>
+            <ul>
+              {githubData.repositories.map(repo => (
+                <li key={repo.repo_id}>
+                  <strong>{repo.repo_name}</strong> - {repo.description} (Language: {repo.language})
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      }
     } else if (type === 'LeetCode') {
       setModalContent(<div>LeetCode statistics and activities fetched from the database...</div>);
     }
@@ -88,7 +133,7 @@ export const Dashboard = () => {
               <div className="flex items-center justify-center mb-4">
                 <img className="w-20 h-20 rounded-full mr-4" src="https://avatar.iran.liara.run/public/36" alt="David's avatar" />
                 <h1 className="text-4xl font-bold text-amber-100">
-                  Hello, {studentName} – <br />Crafting Creative Code!
+                  Hello, {studentName}  – <br />Crafting Creative Code!
                 </h1>
               </div>
               <p className="text-amber-200 max-w-2xl mx-auto">
@@ -101,7 +146,7 @@ export const Dashboard = () => {
               initial="hidden"
               animate="visible"
             >
-              <motion.div variants={item} onClick={() => handleCardClick('GitHub')}>
+              <motion.div variants={item} onClick={() => handleCardClick('GitHub', studentSRN)}>
                 <Card 
                   backgroundColor="rgba(255, 255, 255, 0.6)" 
                   borderColor="rgba(36, 41, 46, 1)" 
@@ -111,7 +156,7 @@ export const Dashboard = () => {
                   icon={<FaGithub size={48} />}
                 />
               </motion.div>
-              <motion.div variants={item} onClick={() => handleCardClick('LeetCode')}>
+              <motion.div variants={item} onClick={() => handleCardClick('LeetCode', studentSRN)}>
                 <Card 
                   backgroundColor="rgba(255, 255, 255, 0.6)" 
                   borderColor="rgba(255, 161, 22, 1)" 
