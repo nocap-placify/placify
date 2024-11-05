@@ -26,7 +26,14 @@ const item = {
     opacity: 1
   }
 };
-
+interface LeetcodeData {
+  leetcode_id: string;
+  ranking: number;
+  easy_solved: number;
+  medium_solved: number;
+  hard_solved: number;
+  total_solved: number;
+}
 // Define types for GitHub data
 interface Repository {
   repo_id: string;
@@ -48,7 +55,9 @@ export const Dashboard = () => {
   const [modalContent, setModalContent] = useState<React.ReactNode>(null);
   const [githubData, setGithubData] = useState<GitHubData | null>(null);
   const [isGithubLoading, setIsGithubLoading] = useState(false);
-  
+  const [leetcodeData, setLeetcodeData] = useState<LeetcodeData | null>(null); // State to hold LeetCode data
+  const [isLeetcodeLoading, setIsLeetcodeLoading] = useState(false);
+
   // Preload background image
   useEffect(() => {
     const img = new Image();
@@ -67,6 +76,20 @@ export const Dashboard = () => {
       return null;
     } finally {
       setIsGithubLoading(false);
+    }
+  };
+
+  const fetchLeetcodeData = async (srn: string) => {
+    setIsLeetcodeLoading(true);
+    try {
+      const response = await axios.get(`http://100.102.21.101:8000/getLeetcode?srn=${srn}`);
+      setLeetcodeData(response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching LeetCode data:', error);
+      return null;
+    } finally {
+      setIsLeetcodeLoading(false);
     }
   };
 
@@ -140,7 +163,61 @@ export const Dashboard = () => {
         );
       }
     } else if (type === 'LeetCode') {
-      setModalContent(<div>LeetCode statistics and activities fetched from the database...</div>);
+      setModalContent(
+        <div className="flex justify-center items-center min-h-[200px]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500"></div>
+        </div>
+      );
+    
+      const data = await fetchLeetcodeData(srn);
+    
+      if (data) {
+        const leetcodeProfileUrl = `https://leetcode.com/${data.leetcode_id}`;
+        const leetcodeUsername = data.leetcode_id.split('/').pop();
+    
+        setModalContent(
+          <div className="p-6 bg-white rounded-lg shadow-lg">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+              <SiLeetcode className="mr-2 text-yellow-500" />
+              LeetCode:<a
+              
+                href={leetcodeProfileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline ml-2 transition duration-300"
+                title="View LeetCode Profile"
+              >
+                {leetcodeUsername}
+              </a>
+            </h2>
+            <div className="text-lg font-semibold text-gray-700 mb-4">
+              Ranking: <span className="font-bold text-gray-800">{data.ranking}</span>
+            </div>
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">Problems Solved:</h3>
+            <ul className="space-y-2">
+              <li className="text-gray-600">
+                <span className="font-medium">Easy:</span> {data.easy_solved}
+              </li>
+              <li className="text-gray-600">
+                <span className="font-medium">Medium:</span> {data.medium_solved}
+              </li>
+              <li className="text-gray-600">
+                <span className="font-medium">Hard:</span> {data.hard_solved}
+              </li>
+              <li className="text-gray-800 font-bold mt-2">
+                Total Solved: {data.total_solved}
+              </li>
+            </ul>
+          </div>
+        );
+      } else {
+        setModalContent(
+          <div className="p-6 bg-white rounded-lg shadow-lg">
+            <h2 className="text-xl font-bold text-red-600">Error loading LeetCode data</h2>
+            <p className="text-gray-600">Please try again later.</p>
+          </div>
+        );
+      }
     }
   };
 
