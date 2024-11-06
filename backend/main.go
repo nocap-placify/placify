@@ -91,6 +91,8 @@ type Student struct {
 	Email     string    `gorm:"type:varchar(255);column:email"`
 	Age       int       `gorm:"column:age"`
 	Linkedin  string    `gorm:"column:linkedin"`
+	Degree    string    `gorm:"column:degree"`
+	Stream    string    `gorm:"column:stream"`
 }
 
 type Mentor struct {
@@ -156,12 +158,12 @@ func insertStudent(db *gorm.DB, student Student) error {
 	// Prepare the SQL query to insert a new student
 	query := `
 		INSERT INTO student
-		(student_id, name, phone_no, dob, gender, resume, sem, mentor_id, cgpa, email, age, linkedin)
+		(student_id, name, phone_no, dob, gender, resume, sem, mentor_id, cgpa, email, age, linkedin, degree, stream)
 		VALUES
-		($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 	`
 	err := db.Exec(query, student.StudentID, student.Name, student.PhoneNo, student.Dob, student.Gender,
-		student.Resume, student.Sem, student.MentorID, student.CGPA, student.Email, student.Age, student.Linkedin).Error
+		student.Resume, student.Sem, student.MentorID, student.CGPA, student.Email, student.Age, student.Linkedin, student.Degree, student.Stream).Error
 
 	if err != nil {
 		return fmt.Errorf("could not insert student: %v", err)
@@ -628,6 +630,11 @@ func GetLinkedin(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+// func GetInfo(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+// 	srn := r.URL.Query().Get("srn")
+
+// }
+
 func main() {
 	counter := 0
 	dsn := "host=100.102.21.101 user=postgres password=dbms_porj dbname=dbms_project port=5432 sslmode=disable TimeZone=Asia/Shanghai"
@@ -723,6 +730,8 @@ func main() {
 			Email:     student.Email,
 			Age:       student.Age,
 			Linkedin:  student.Linkedin,
+			Degree:    student.Degree,
+			Stream:    student.Stream,
 		}
 
 		resumePath := filepath.Join("/home/suraj/Documents/Resumes", student.Resume)
@@ -884,9 +893,10 @@ func main() {
 		GetLinkedin(db, w, r)
 	})
 
-	// http.HandleFunc("/getInfo", func(w http.ResponseWriter, r *http.Request){
+	// http.HandleFunc("/getInfo", func(w http.ResponseWriter, r *http.Request) {
 	// 	GetInfo(db, w, r)
 	// })
+
 	fmt.Println("Server is running on port 8000")
 	http.ListenAndServe(":8000", handlers.CORS()(http.DefaultServeMux))
 
