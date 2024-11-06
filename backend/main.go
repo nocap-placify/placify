@@ -64,17 +64,17 @@ type Info struct {
 }
 
 type Mentor_Session_CSV struct {
-	MentorID  int       `gorm:"column:mentor_name" csv:"mentor_name"`
-	StudentID string    `gorm:"column:student_id;primaryKey" csv:"srn"`
-	Date      time.Time `gorm:"column:date" csv:"date"`
-	Advice    string    `gorm:"advice" csv:"advice"`
+	MentorID  string `gorm:"column:mentor_name" csv:"mentor_name"`
+	StudentID string `gorm:"column:student_id;primaryKey" csv:"srn" time_format:"2006-01-02"`
+	Date      string `gorm:"column:date" csv:"date"`
+	Advice    string `gorm:"advice" csv:"advice"`
 }
 
 type Mentor_Session_DB struct {
-	MentorID  int       `gorm:"column:mentor_name"`
-	StudentID string    `gorm:"column:student_id;primaryKey"`
-	Date      time.Time `gorm:"column:date"`
-	Advice    string    `gorm:"advice"`
+	MentorID  int    `gorm:"column:mentor_name"`
+	StudentID string `gorm:"column:student_id;primaryKey"`
+	Date      string `gorm:"column:date"`
+	Advice    string `gorm:"advice"`
 }
 
 type Student struct {
@@ -294,6 +294,18 @@ func insertProblems(db *gorm.DB, problems Problems) error {
 	if err != nil {
 		return fmt.Errorf("could not insert problem: %v", err)
 	}
+	return nil
+}
+
+func insertMentorSessions(db *gorm.DB, mentors Mentor_Session_DB) error {
+	query := `INSERT INTO mentor_sessions (mentor_id, student_id, date, advice)
+	VALUES ($1, $2, $3, $4)` // Removed the semicolon inside VALUES
+
+	// Correctly handle the error returned by db.Exec
+	if err := db.Exec(query, mentors.MentorID, mentors.StudentID, mentors.Date, mentors.Advice).Error; err != nil {
+		return fmt.Errorf("couldn't insert into mentor_sessions: %v", err)
+	}
+
 	return nil
 }
 
@@ -573,8 +585,20 @@ func main() {
 		log.Fatalf("Could not create CSV decoder: %v", err)
 	}
 
-	var all_info []Info
+	mentor_file, men_err := os.Open("mentor_sesh.csv")
+	if men_err != nil {
+		log.Fatalf("failed to open mentor csv file: %v", men_err)
+	}
+	defer mentor_file.Close()
 
+	mentor_reader := csv.NewReader(mentor_file)
+	mentor_decoder, dec_err := csvutil.NewDecoder(mentor_reader)
+	if dec_err != nil {
+		log.Fatalf("couldnt make mentor decoder: %v", dec_err)
+	}
+
+	var all_info []Info
+	var mentor_info []Mentor_Session_CSV
 	// Decode each record into the students slice
 	for {
 		var sing_info Info
@@ -725,6 +749,37 @@ func main() {
 			counter = counter + 1
 
 		}
+	}
+
+	for {
+		var men_info Mentor_Session_CSV
+		if err := mentor_decoder.Decode(&men_info); err != nil {
+			if err == io.EOF {
+				break
+			}
+			log.Fatalf("couldnt decode mentor record: %v", err)
+		}
+		mentor_info = append(mentor_info, men_info)
+	}
+
+	for _, m_info := range mentor_info {
+		m_id, err := fetchMentorID(db, m_info.MentorID)
+		if err != nil {
+			break
+		}
+		fmt.Printf("mentor_id: %d stud_id: %s", m_id, m_info.StudentID)
+		m_str := Mentor_Session_DB{
+			MentorID:  m_id,
+			StudentID: m_info.StudentID,
+			Date:      m_info.Date,
+			Advice:    m_info.Advice,
+		}
+		fmt.Printf("advice: %s\n", m_str.Advice)
+		err = insertMentorSessions(db, m_str)
+		if err != nil {
+			log.Fatal("failed to insert mentor sessions", err)
+		}
+		log.Println("mentor sessions inserted successfully")
 	}
 
 	fmt.Printf("!!!done setting up database!!!")
