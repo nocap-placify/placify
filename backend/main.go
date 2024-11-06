@@ -156,12 +156,12 @@ func insertStudent(db *gorm.DB, student Student) error {
 	// Prepare the SQL query to insert a new student
 	query := `
 		INSERT INTO student
-		(student_id, name, phone_no, dob, gender, resume, sem, mentor_id, cgpa, email, age)
+		(student_id, name, phone_no, dob, gender, resume, sem, mentor_id, cgpa, email, age, linkedin)
 		VALUES
-		($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 	`
 	err := db.Exec(query, student.StudentID, student.Name, student.PhoneNo, student.Dob, student.Gender,
-		student.Resume, student.Sem, student.MentorID, student.CGPA, student.Email, student.Age).Error
+		student.Resume, student.Sem, student.MentorID, student.CGPA, student.Email, student.Age, student.Linkedin).Error
 
 	if err != nil {
 		return fmt.Errorf("could not insert student: %v", err)
