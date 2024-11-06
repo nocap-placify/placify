@@ -553,6 +553,47 @@ func GetResume(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func GetMentorSessions(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+	type Session struct {
+		Date   string `json:"date"`
+		Advice string `json:"advice"`
+	}
+
+	type MentorSessionsResponse struct {
+		SRN      string    `json:"srn"`
+		Sessions []Session `json:"sessions"`
+	}
+
+	srn := r.URL.Query().Get("srn")
+	if srn == "" {
+		http.Error(w, "Missing SRN parameter", http.StatusBadRequest)
+		return
+	}
+
+	var sessions []Session
+
+	query := `
+		SELECT date, advice
+		FROM mentor_sessions
+		WHERE student_id = ?
+	`
+	if err := db.Raw(query, srn).Scan(&sessions).Error; err != nil {
+		http.Error(w, "Database error: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response := MentorSessionsResponse{
+		SRN:      srn,
+		Sessions: sessions,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Failed to encode response: "+err.Error(), http.StatusInternalServerError)
+	}
+}
+
 func main() {
 	counter := 0
 	dsn := "host=100.102.21.101 user=postgres password=dbms_porj dbname=dbms_project port=5432 sslmode=disable TimeZone=Asia/Shanghai"
@@ -648,7 +689,7 @@ func main() {
 			Email:     student.Email,
 			Age:       student.Age,
 		}
-		
+
 		resumePath := filepath.Join("/home/suraj/Documents/Resumes", student.Resume)
 		student.Resume = resumePath
 
@@ -798,6 +839,10 @@ func main() {
 
 	http.HandleFunc("/getResume", func(w http.ResponseWriter, r *http.Request) {
 		GetResume(db, w, r)
+	})
+
+	http.HandleFunc("/getMentorSessions", func(w http.ResponseWriter, r *http.Request) {
+		GetMentorSessions(db, w, r)
 	})
 	fmt.Println("Server is running on port 8000")
 	http.ListenAndServe(":8000", handlers.CORS()(http.DefaultServeMux))
