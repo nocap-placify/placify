@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Document, Page } from 'react-pdf';
 import { Card } from "../components/card";
 import Background from '../assets/backgroundblue.png';
 import { FaGithub } from 'react-icons/fa';
@@ -80,25 +79,6 @@ export const Dashboard = () => {
     }
   };
 
-  const fetchResumeData = async (srn) => {
-    try {
-      const response = await axios.get(`http://100.102.21.101:8000/getResume?srn=${srn}`, {
-        responseType: 'blob',
-      });
-      const blob = new Blob([response.data], { type: 'application/pdf' });
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = (error) => reject(error);
-        reader.readAsDataURL(blob);
-      });
-      setResumeData(base64.split(',')[1]);
-    } catch (error) {
-      console.error("Error fetching resume data:", error);
-      setResumeData("Error loading resume data. Please try again later.");
-    }
-    setShowModal(true);
-  };
 
   const fetchLeetcodeData = async (srn: string) => {
     setIsLeetcodeLoading(true);
@@ -243,29 +223,42 @@ export const Dashboard = () => {
   };
 
   const handleResumeClick = async () => {
-    if (!studentSRN) {
-      console.error("SRN is undefined");
-      return;
-    }
+    setShowModal(true);
     setModalContent(
       <div className="flex items-center justify-center p-12">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
       </div>
     );
-    await fetchResumeData(studentSRN);
-    setModalContent(
-      <div className="p-6 bg-white rounded-lg shadow-lg flex flex-col items-center">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">Resume</h2>
-        <div className="w-full h-[600px] overflow-y-auto">
-          <Document
-            file={`data:application/pdf;base64,${resumeData}`}
-            onLoadError={(error) => console.error("Error loading PDF:", error)}
-          >
-            <Page pageNumber={1} />
-          </Document>
+
+    try {
+      const response = await fetch(`http://100.102.21.101:8000/getResume?srn=${studentSRN}`);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      setResumeData(url);
+
+      setModalContent(
+        <div className="p-6 bg-white rounded-lg shadow-lg flex flex-col items-center">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Resume</h2>
+          <div className="w-full h-[600px] overflow-y-auto">
+            <iframe
+              src={url}
+              frameBorder="0"
+              title="Resume"
+              className="w-full h-full"
+            />
+          </div>
         </div>
-      </div>
-    );
+      );
+    } catch (error) {
+      console.error("Error fetching resume data:", error);
+      setResumeData("Error loading resume data. Please try again later.");
+      setModalContent(
+        <div className="p-6 bg-white rounded-lg shadow-lg">
+          <h2 className="text-xl font-bold text-red-600">Error loading resume data</h2>
+          <p className="text-gray-600">Please try again later.</p>
+        </div>
+      );
+    }
   };
   
 
