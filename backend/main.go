@@ -52,7 +52,7 @@ type Info struct {
 	DOB             time.Time `gorm:"column:dob" csv:"dob"` // Add dob to the CSV if available
 	Gender          string    `gorm:"column:gender" csv:"gender"`
 	Resume          string    `gorm:"column:resume" csv:"resume"`
-	Sem             int       `gorm:"column:sem"`                           // Add sem to CSV if relevant
+	Sem             int       `gorm:"column:sem" csv:"sem"`                 // Add sem to CSV if relevant
 	MentorID        string    `gorm:"column:mentor_name" csv:"mentor_name"` // Adjust if MentorID maps to a different field
 	CGPA            float64   `gorm:"column:cgpa" csv:"cgpa"`
 	Degree          string    `gorm:"column:degree" csv:"degree"`
@@ -630,10 +630,48 @@ func GetLinkedin(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// func GetInfo(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
-// 	srn := r.URL.Query().Get("srn")
+func GetInfo(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+	srn := r.URL.Query().Get("srn")
+	if srn == "" {
+		http.Error(w, "Missing srn parameter", http.StatusBadRequest)
+		return
+	}
+	var studentInfo struct {
+		SRN    string  `json:"srn"`
+		Gender string  `json:"gender"`
+		CGPA   float64 `json:"cgpa"`
+		Email  string  `json:"email"`
+		Sem    int     `json:"sem"`
+		Degree string  `json:"degree"`
+		Stream string  `json:"stream"`
+		Age    int     `json:"age"`
+	}
+	err := db.Raw(`
+		SELECT 
+			student_id AS srn, 
+			gender, 
+			cgpa, 
+			email, 
+			sem, 
+			degree, 
+			stream, 
+			age 
+		FROM 
+			public.student 
+		WHERE 
+			student_id = ?`, srn).Scan(&studentInfo).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			http.Error(w, "Student not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Failed to query database", http.StatusInternalServerError)
+		}
+		return
+	}
 
-// }
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(studentInfo)
+}
 
 func main() {
 	counter := 0
@@ -694,8 +732,8 @@ func main() {
 	}
 
 	for _, student := range all_info {
-		fmt.Printf("Name: %s, SRN: %s, CGPA: %.2f, Age: %d, Email: %s, Phone: %s, Degree: %s, Stream: %s, Gender: %s, GitHub: %s, LeetCode: %s, Mentor: %s, Resume: %s\n",
-			student.Name, student.StudentID, student.CGPA, student.Age, student.Email, student.PhoneNo,
+		fmt.Printf("Name: %s, SRN: %s, CGPA: %.2f, Sem: %d, Email: %s, Phone: %s, Degree: %s, Stream: %s, Gender: %s, GitHub: %s, LeetCode: %s, Mentor: %s, Resume: %s\n",
+			student.Name, student.StudentID, student.CGPA, student.Sem, student.Email, student.PhoneNo,
 			student.Degree, student.Stream, student.Gender, student.GithubProfile,
 			student.LeetcodeProfile, student.MentorID, student.Resume, student.Linkedin)
 		mentorID, err := fetchMentorID(db, student.MentorID)
@@ -893,9 +931,9 @@ func main() {
 		GetLinkedin(db, w, r)
 	})
 
-	// http.HandleFunc("/getInfo", func(w http.ResponseWriter, r *http.Request) {
-	// 	GetInfo(db, w, r)
-	// })
+	http.HandleFunc("/getInfo", func(w http.ResponseWriter, r *http.Request) {
+		GetInfo(db, w, r)
+	})
 
 	fmt.Println("Server is running on port 8000")
 	http.ListenAndServe(":8000", handlers.CORS()(http.DefaultServeMux))
