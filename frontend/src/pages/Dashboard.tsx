@@ -6,7 +6,14 @@ import { Card } from "../components/card";
 import Background from '../assets/backgroundblue.png';
 import { FaGithub } from 'react-icons/fa';
 import { SiLeetcode } from 'react-icons/si';
-
+import { FaChalkboardTeacher } from 'react-icons/fa';
+import { FaLinkedin } from 'react-icons/fa';
+import { FaUserCircle } from 'react-icons/fa';
+import { MdEmail } from 'react-icons/md';
+import { FaMale, FaFemale } from 'react-icons/fa';
+import { FaGraduationCap } from 'react-icons/fa';
+import { GiCoinsPile, GiRank1 } from 'react-icons/gi';
+import { BsFillCalendarFill } from 'react-icons/bs';
 const container = {
   hidden: { opacity: 0 },
   visible: {
@@ -46,6 +53,15 @@ interface GitHubData {
   github_id: string;
   repositories: Repository[];
 }
+interface MentorSession {
+  date: string;
+  advice: string;
+}
+
+interface LinkedInData {
+  Linkedin: string; // Define the expected structure of LinkedIn data here
+}
+
 
 export const Dashboard = () => {
   const location = useLocation();
@@ -58,6 +74,12 @@ export const Dashboard = () => {
   const [resumeData, setResumeData] = useState<string | null>(null); // New state for resume
   const [isGithubLoading, setIsGithubLoading] = useState(false);
   const [isLeetcodeLoading, setIsLeetcodeLoading] = useState(false);
+  const [isMentorSessionLoading, setIsMentorSessionLoading] = useState(false);
+  const [studentInfo, setStudentInfo] = useState(null);
+  const [linkedinUrl, setLinkedinUrl] = useState(null);
+
+
+
 
   useEffect(() => {
     const img = new Image();
@@ -65,6 +87,33 @@ export const Dashboard = () => {
     img.onload = () => setIsLoading(false);
   }, []);
   
+  useEffect(() => {
+    const fetchStudentInfo = async () => {
+      try {
+        const infoResponse = await axios.get(`http://100.102.21.101:8000/getInfo?srn=${studentSRN}`);
+        setStudentInfo(infoResponse.data);
+
+        const linkedinResponse = await axios.get(`http://100.102.21.101:8000/getLinkedin?srn=${studentSRN}`);
+        console.log(linkedinResponse)
+        setLinkedinUrl(linkedinResponse.data); // Fetch LinkedIn URL as per the interface
+        console.log(linkedinUrl)
+      } catch (error) {
+        console.error('Error fetching student info or LinkedIn URL:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStudentInfo();
+  }, [studentSRN]);
+
+  const handleLinkedInClick = () => {
+    if (linkedinUrl?.linkedin) {
+      window.open(linkedinUrl.linkedin, "_blank");
+    } else {
+      console.error("LinkedIn URL not available");
+    }
+  };
   const fetchData = async (srn: string) => {
     setIsGithubLoading(true);
     try {
@@ -93,24 +142,45 @@ export const Dashboard = () => {
       setIsLeetcodeLoading(false);
     }
   };
+  const fetchMentorSessionData = async (srn: string) => {
+    setIsMentorSessionLoading(true);
+    try {
+      const response = await axios.get(`http://100.102.21.101:8000/getMentorSessions?srn=${srn}`);
+      return response.data.sessions; // Assuming the data is returned as an array of sessions
+    } catch (error) {
+      console.error('Error fetching MentorSessions data:', error);
+      return null;
+    } finally {
+      setIsMentorSessionLoading(false);
+    }
+  };
+  // const handleLinkedInClick = () => {
+  //   if (linkedinUrl) {
+  //     window.open(linkedinUrl, "_blank"); // Open LinkedIn URL in a new tab
+  //   } else {
+  //     console.error("LinkedIn URL not available");
+  //   }
+  // };
+
+  
 
   const handleCardClick = async (type: string, srn: string) => {
     if (!srn) {
       console.error('SRN is undefined');
       return;
     }
-    
+  
     setShowModal(true);
-    
+  
     if (type === 'GitHub') {
       setModalContent(
         <div className="flex items-center justify-center p-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
         </div>
       );
-      
+  
       const data = await fetchData(srn);
-      
+  
       if (data) {
         const githubProfileUrl = data.github_id;
         const githubUsername = githubProfileUrl.split('/').pop();
@@ -120,11 +190,11 @@ export const Dashboard = () => {
             <div className="p-6 bg-white rounded-t-lg">
               <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center sticky top-0">
                 <FaGithub className="mr-2 text-gray-800" />
-                GitHub: 
-                <a 
-                  href={githubProfileUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
+                GitHub:
+                <a
+                  href={githubProfileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-blue-600 hover:underline ml-2 transition duration-300"
                   title="View GitHub Profile"
                 >
@@ -138,9 +208,9 @@ export const Dashboard = () => {
                 {data.repositories.map(repo => (
                   <li key={repo.repo_id} className="border rounded-lg p-4 bg-gray-50 hover:bg-gray-100 transition duration-300">
                     <h4 className="text-lg font-bold text-gray-800">
-                      <a 
-                        href={`${data.github_id}/${repo.repo_name}`} 
-                        target="_blank" 
+                      <a
+                        href={`${data.github_id}/${repo.repo_name}`}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-500 hover:underline"
                       >
@@ -169,19 +239,19 @@ export const Dashboard = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500"></div>
         </div>
       );
-    
+  
       const data = await fetchLeetcodeData(srn);
-    
+  
       if (data) {
         const leetcodeProfileUrl = `https://leetcode.com/${data.leetcode_id}`;
         const leetcodeUsername = data.leetcode_id.split('/').pop();
-    
+  
         setModalContent(
           <div className="p-6 bg-white rounded-lg shadow-lg">
             <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
               <SiLeetcode className="mr-2 text-yellow-500" />
-              LeetCode:<a
-              
+              LeetCode:
+              <a
                 href={leetcodeProfileUrl}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -219,8 +289,43 @@ export const Dashboard = () => {
           </div>
         );
       }
-    }
+    }  else if (type === 'MentorSession') {
+  setModalContent(
+    <div className="flex justify-center items-center min-h-[200px]">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
+    </div>
+  );
+
+  const data = await fetchMentorSessionData(srn);
+
+  if (data && data.length > 0) {
+    setModalContent(
+      <div className="p-6 bg-white rounded-lg shadow-lg">
+        <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+        <FaChalkboardTeacher className="mr-2 text-gray-800" size={24} /> {/* Icon added here */}
+        Mentor Sessions
+      </h2>
+        <ul className="space-y-4">
+          {data.map((session, index) => (
+            <li key={index} className="border rounded-lg p-4 bg-gray-50 hover:bg-gray-100 transition duration-300">
+              <h3 className="text-lg font-bold text-gray-800">Date: {session.date}</h3>
+              <p className="text-gray-600">{session.advice}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  } else {
+    setModalContent(
+      <div className="p-6 bg-white rounded-lg shadow-lg">
+        <h2 className="text-xl font-bold text-red-600">No mentor sessions found</h2>
+        <p className="text-gray-600">Please check back later for updated mentor session information.</p>
+      </div>
+    );
+  }
+}
   };
+
 
   const handleResumeClick = async () => {
     setShowModal(true);
@@ -269,6 +374,7 @@ export const Dashboard = () => {
   };
 
   return (
+    
     <AnimatePresence>
       {isLoading ? (
         <motion.div
@@ -301,17 +407,46 @@ export const Dashboard = () => {
           }}
         >
           <main className="flex-grow flex flex-col items-center justify-center w-full max-w-2xl">
-            <div className="text-center mb-12">
-              <div className="flex items-center justify-center mb-4">
-                <img className="w-20 h-20 rounded-full mr-4" src="https://avatar.iran.liara.run/public/36" alt="David's avatar" />
-                <h1 className="text-4xl font-bold text-amber-100">
-                  Hello, {studentName}  – <br />Crafting Creative Code!
-                </h1>
-              </div>
-              <p className="text-amber-200 max-w-2xl mx-auto">
-                As a creative developer, I blend code and design to build unique, user-centric experiences. Let's turn your ideas into a dynamic and engaging digital reality!
-              </p>
-            </div>
+  <div className="text-center mb-16"> {/* Increased the bottom margin here */}
+    <div className="flex items-center justify-center mb-8"> {/* Increased space below the avatar and name */}
+      <img className="w-20 h-20 rounded-full mr-4" src="https://avatar.iran.liara.run/public/36" alt="User's avatar" />
+      <h1 className="text-4xl font-bold text-amber-100">{studentName}</h1>
+    </div>
+    <div className="text-amber-200 max-w-2xl mx-auto mt-8"> {/* Added margin-top to the info section */}
+      {studentInfo && (
+        <div className="text-amber-200 max-w-2xl mx-auto text-center space-y-6"> {/* Increased vertical space between info items */}
+          <div className="flex flex-wrap justify-center gap-6"> {/* Added more gap between items */}
+            <p className="flex items-center space-x-2">
+              <MdEmail className="mr-0.5" size={21} /> <span>Email:</span> <span>{studentInfo.email}</span>
+            </p>
+            <p className="flex items-center space-x-2">
+              {studentInfo.gender === 'Male' ? (
+                <FaMale className="mr-0.5" size={21} />
+              ) : (
+                <FaFemale className="mr-0.5" size={21} />
+              )}
+              <span>Gender:</span> <span>{studentInfo.gender}</span>
+            </p>
+            <p className="flex items-center space-x-2">
+              <FaGraduationCap className="mr-0.5" size={21} /> <span>Degree:</span> <span>{studentInfo.degree}</span>
+            </p>
+            <p className="flex items-center space-x-2">
+              <BsFillCalendarFill className="mr-0.5" size={21} /> <span>Semester:</span> <span>{studentInfo.sem}</span>
+            </p>
+            <p className="flex items-center space-x-2">
+              <FaUserCircle className="mr-0.5" size={21} /> <span>Age:</span> <span>{studentInfo.age}</span>
+            </p>
+            <p className="flex items-center space-x-2">
+              <GiRank1 className="mr-0.5" size={21} /> <span>CGPA:</span> <span>{studentInfo.cgpa}</span>
+            </p>
+            <p className="flex items-center space-x-2">
+              <FaGraduationCap className="mr-0.5" size={21} /> <span>Stream:</span> <span>{studentInfo.stream}</span>
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
             <motion.div 
               className="grid grid-cols-2 gap-4 w-full"
               variants={container}
@@ -338,6 +473,29 @@ export const Dashboard = () => {
                   icon={<SiLeetcode size={48} />}
                 />
               </motion.div>
+              {/* New Mentor Session Card */}
+  <motion.div variants={item} onClick={() => handleCardClick('MentorSession', studentSRN)}>
+    <Card 
+      backgroundColor="#BFEE90"  // Green background for Mentor Session card
+      borderColor="rgba(34, 139, 34, 1)" 
+      glowColor="rgba(34, 139, 34, 0.2)" 
+      title="Mentor Session" 
+      content="View session details" 
+      icon={<FaChalkboardTeacher size={48} />}  // Replace with a relevant icon if needed
+    />
+  </motion.div>
+  {/* LinkedIn Card */}
+  <motion.div variants={item} onClick={handleLinkedInClick}>
+                <Card 
+                  backgroundColor="#ADD8E6"  
+                  borderColor="#005983"  
+                  glowColor="rgba(0, 119, 181, 0.2)"  
+                  title="LinkedIn" 
+                  content="LinkedIn page" 
+                  icon={<FaLinkedin size={48} />}  
+                />
+              </motion.div>
+  
             </motion.div>
             <button 
               onClick={handleResumeClick}
