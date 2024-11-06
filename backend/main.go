@@ -61,6 +61,7 @@ type Info struct {
 	GithubProfile   string    `gorm:"column:github_profile" csv:"github_profile"`
 	LeetcodeProfile string    `gorm:"column:leetcode_profile" csv:"leetcode_profile"`
 	Age             int       `gorm:"column:age" csv:"age"`
+	Linkedin        string    `gorm:"column:linkedin" csv:"linkedin_link"`
 }
 
 type Mentor_Session_CSV struct {
@@ -89,6 +90,7 @@ type Student struct {
 	CGPA      float64   `gorm:"type:numeric(4,2);column:cgpa"` // Use float64 to represent numeric types
 	Email     string    `gorm:"type:varchar(255);column:email"`
 	Age       int       `gorm:"column:age"`
+	Linkedin  string    `gorm:"column:linkedin"`
 }
 
 type Mentor struct {
@@ -594,6 +596,38 @@ func GetMentorSessions(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func GetLinkedin(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+	srn := r.URL.Query().Get("srn")
+
+	if srn == "" {
+		http.Error(w, "Missing srn parameter", http.StatusBadRequest)
+		return
+	}
+
+	var linkedinLink string
+	err := db.Raw("SELECT linkedin FROM public.student WHERE student_id = ?", srn).Scan(&linkedinLink).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			http.Error(w, "Student not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Failed to query database", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	if linkedinLink == "" {
+		http.Error(w, "LinkedIn link not available", http.StatusNotFound)
+		return
+	}
+
+	response := map[string]string{
+		"linkedin": linkedinLink,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
 func main() {
 	counter := 0
 	dsn := "host=100.102.21.101 user=postgres password=dbms_porj dbname=dbms_project port=5432 sslmode=disable TimeZone=Asia/Shanghai"
@@ -656,7 +690,7 @@ func main() {
 		fmt.Printf("Name: %s, SRN: %s, CGPA: %.2f, Age: %d, Email: %s, Phone: %s, Degree: %s, Stream: %s, Gender: %s, GitHub: %s, LeetCode: %s, Mentor: %s, Resume: %s\n",
 			student.Name, student.StudentID, student.CGPA, student.Age, student.Email, student.PhoneNo,
 			student.Degree, student.Stream, student.Gender, student.GithubProfile,
-			student.LeetcodeProfile, student.MentorID, student.Resume)
+			student.LeetcodeProfile, student.MentorID, student.Resume, student.Linkedin)
 		mentorID, err := fetchMentorID(db, student.MentorID)
 
 		if err != nil {
@@ -688,6 +722,7 @@ func main() {
 			CGPA:      student.CGPA,
 			Email:     student.Email,
 			Age:       student.Age,
+			Linkedin:  student.Linkedin,
 		}
 
 		resumePath := filepath.Join("/home/suraj/Documents/Resumes", student.Resume)
@@ -844,6 +879,14 @@ func main() {
 	http.HandleFunc("/getMentorSessions", func(w http.ResponseWriter, r *http.Request) {
 		GetMentorSessions(db, w, r)
 	})
+
+	http.HandleFunc("/getLinkedin", func(w http.ResponseWriter, r *http.Request) {
+		GetLinkedin(db, w, r)
+	})
+
+	// http.HandleFunc("/getInfo", func(w http.ResponseWriter, r *http.Request){
+	// 	GetInfo(db, w, r)
+	// })
 	fmt.Println("Server is running on port 8000")
 	http.ListenAndServe(":8000", handlers.CORS()(http.DefaultServeMux))
 
