@@ -648,7 +648,7 @@ func main() {
 			Email:     student.Email,
 			Age:       student.Age,
 		}
-
+		
 		resumePath := filepath.Join("/home/suraj/Documents/Resumes", student.Resume)
 		student.Resume = resumePath
 
