@@ -14,6 +14,12 @@ import { FaMale, FaFemale } from 'react-icons/fa';
 import { FaGraduationCap } from 'react-icons/fa';
 import { GiCoinsPile, GiRank1 } from 'react-icons/gi';
 import { BsFillCalendarFill } from 'react-icons/bs';
+
+
+interface MousePosition {
+  x: number;
+  y: number;
+}
 const container = {
   hidden: { opacity: 0 },
   visible: {
@@ -64,6 +70,9 @@ interface LinkedInData {
 
 
 export const Dashboard = () => {
+  const [mousePosition, setMousePosition] = useState<MousePosition>({ x: 0, y: 0 });
+  const [isVisible, setIsVisible] = useState(false);
+  const [scale, setScale] = useState(1);
   const location = useLocation();
   const { studentName, srn: studentSRN } = location.state || {};
   const [isLoading, setIsLoading] = useState(true);
@@ -78,6 +87,26 @@ export const Dashboard = () => {
   const [studentInfo, setStudentInfo] = useState(null);
   const [linkedinUrl, setLinkedinUrl] = useState(null);
 
+  useEffect(() => {
+    setIsVisible(true);
+    const handleMouseMove = (e: MouseEvent) => {
+        setMousePosition({ x: e.clientX, y: e.clientY });
+    };
+    const handleResize = () => {
+        const scaleX = window.innerWidth / 600;
+        const scaleY = window.innerHeight / 400;
+        setScale(Math.min(scaleX, scaleY, 1));
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('resize', handleResize);
+    handleResize();
+
+    return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
 
 
@@ -127,8 +156,6 @@ export const Dashboard = () => {
       setIsGithubLoading(false);
     }
   };
-
-
   const fetchLeetcodeData = async (srn: string) => {
     setIsLeetcodeLoading(true);
     try {
@@ -154,6 +181,7 @@ export const Dashboard = () => {
       setIsMentorSessionLoading(false);
     }
   };
+
   // const handleLinkedInClick = () => {
   //   if (linkedinUrl) {
   //     window.open(linkedinUrl, "_blank"); // Open LinkedIn URL in a new tab
@@ -161,9 +189,6 @@ export const Dashboard = () => {
   //     console.error("LinkedIn URL not available");
   //   }
   // };
-
-  
-
   const handleCardClick = async (type: string, srn: string) => {
     if (!srn) {
       console.error('SRN is undefined');
@@ -324,9 +349,7 @@ export const Dashboard = () => {
     );
   }
 }
-  };
-
-
+};
   const handleResumeClick = async () => {
     setShowModal(true);
     setModalContent(
@@ -365,17 +388,71 @@ export const Dashboard = () => {
       );
     }
   };
-  
-
-
   const closeModal = () => {
     setShowModal(false);
     setModalContent(null);
   };
+  
 
-  return (
-    
-    <AnimatePresence>
+  return(
+    <div className="relative min-h-screen overflow-hidden bg-black">
+        <div className="absolute inset-0 overflow-hidden">
+            {/* Background animations */}
+            <div className="absolute inset-0 opacity-10">
+                <div className="absolute h-full w-full animate-wave" 
+                    style={{
+                        backgroundImage: 'linear-gradient(to right, purple 1px, transparent 1px), linear-gradient(to bottom, purple 1px, transparent 1px)',
+                        backgroundSize: '50px 50px',
+                    }}
+                />
+            </div>
+            {[...Array(5)].map((_, i) => (
+                <div
+                    key={i}
+                    className="absolute rounded-full opacity-30 blur-xl animate-float"
+                    style={{
+                        width: `${Math.random() * 300 + 100}px`,
+                        height: `${Math.random() * 300 + 100}px`,
+                        background: 'radial-gradient(circle, rgba(168, 85, 247, 0.4) 0%, rgba(168, 85, 247, 0) 70%)',
+                        left: `${Math.random() * 100}%`,
+                        top: `${Math.random() * 100}%`,
+                        animationDelay: `${Math.random() * 5}s`,
+                    }}
+                />
+            ))}
+            {[...Array(10)].map((_, i) => (
+                <div
+                    key={i}
+                    className="absolute rounded-full opacity-20 animate-pulse"
+                    style={{
+                        width: `${Math.random() * 300 + 100}px`,
+                        height: `${Math.random() * 300 + 100}px`,
+                        background: 'radial-gradient(circle, rgba(168, 85, 247, 0.3) 0%, rgba(168, 85, 247, 0) 70%)',
+                        left: `${Math.random() * 100}%`,
+                        top: `${Math.random() * 100}%`,
+                        animationDelay: `${Math.random() * 5}s`,
+                    }}
+                />
+            ))}
+        </div>
+        <AnimatePresence>
+  <motion.div
+    className="absolute top-4 right-4"
+    variants={item}  // Use the same animation variant as the other cards
+    initial="hidden"
+    animate="visible"
+    exit="hidden"
+  >
+    <button
+      //onClick={handleRedButtonClick}
+      className="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition duration-300"
+    >
+      Red Button
+    </button>
+  </motion.div>
+</AnimatePresence>
+
+        <AnimatePresence>
       {isLoading ? (
         <motion.div
           key="loader"
@@ -394,7 +471,7 @@ export const Dashboard = () => {
           transition={{ duration: 0.5 }}
           className="landing-container"
           style={{
-            backgroundImage: `url(${Background})`,
+            //backgroundImage: `url(${Background})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             height: '100vh',
@@ -447,6 +524,7 @@ export const Dashboard = () => {
       )}
     </div>
   </div>
+            
             <motion.div 
               className="grid grid-cols-2 gap-4 w-full"
               variants={container}
@@ -528,5 +606,22 @@ export const Dashboard = () => {
         </motion.div>
       )}
     </AnimatePresence>
+
+        <style jsx>{`
+            .animate-wave {
+                animation: wave 8s infinite linear;
+            }
+            .animate-float {
+                animation: float 15s infinite ease-in-out;
+            }
+            .animate-pulse {
+                animation: pulse 5s infinite ease-in-out;
+            }
+            @keyframes pulse {
+                0%, 100% { transform: scale(1); opacity: 0.2; }
+                50% { transform: scale(1.2); opacity: 0.4; }
+            }
+        `}</style>
+    </div>
   );
 };
