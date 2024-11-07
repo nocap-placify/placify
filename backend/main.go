@@ -723,19 +723,19 @@ func GetLeetCodeStatistics(db *gorm.DB, w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Append the relative rank as a separate entry if the specified srn is outside the top 15
-	statsWithRank := make([]interface{}, len(stats))
-	for i, stat := range stats {
-		statsWithRank[i] = stat
+	// Prepare the final JSON structure
+	response := map[string]interface{}{
+		"leaderboard":   stats,
+		"relative_rank": relativeRank,
 	}
-	statsWithRank = append(statsWithRank, map[string]int{"relative_rank": relativeRank})
 
 	// Set the Content-Type to application/json and return the response
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(statsWithRank); err != nil {
+	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, "Failed to encode response to JSON", http.StatusInternalServerError)
 	}
 }
+
 
 func GetCGPAStatistics(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	// Define the Statistics struct within the function
@@ -787,19 +787,19 @@ func GetCGPAStatistics(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Prepare the result array, with the relative rank appended as a separate entry
-	statsWithRank := make([]interface{}, len(stats))
-	for i, stat := range stats {
-		statsWithRank[i] = stat
+	// Prepare the final JSON structure
+	response := map[string]interface{}{
+		"leaderboard":   stats,
+		"relative_rank": relativeRank,
 	}
-	statsWithRank = append(statsWithRank, map[string]int{"relative_rank": relativeRank})
 
 	// Set the Content-Type to application/json and return the response
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(statsWithRank); err != nil {
+	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, "Failed to encode response to JSON", http.StatusInternalServerError)
 	}
 }
+
 
 
 
