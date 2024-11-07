@@ -1001,7 +1001,7 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
         backgroundColor="#FFE4E1"  // Pastel pink background
         borderColor="rgba(255, 192, 203, 1)"  // Pastel pink border color
         glowColor="rgba(255, 192, 203, 0.4)"  // Pastel pink glow color
-        title="RESUME" 
+        title="Resume" 
         content="View resume" 
         icon={<FaRegFileAlt size={48} />}  // Icon for Stats card
       />
