@@ -647,18 +647,18 @@ func GetInfo(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		Age    int     `json:"age"`
 	}
 	err := db.Raw(`
-		SELECT 
-			student_id AS srn, 
-			gender, 
-			cgpa, 
-			email, 
-			sem, 
-			degree, 
-			stream, 
-			age 
-		FROM 
-			public.student 
-		WHERE 
+		SELECT
+			student_id AS srn,
+			gender,
+			cgpa,
+			email,
+			sem,
+			degree,
+			stream,
+			age
+		FROM
+			public.student
+		WHERE
 			student_id = ?`, srn).Scan(&studentInfo).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -672,6 +672,136 @@ func GetInfo(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(studentInfo)
 }
+
+func GetLeetCodeStatistics(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+	// Define the Statistics struct within the function
+	type Statistics struct {
+		Srn  string  `json:"srn"`
+		Name string  `json:"name"`
+		Cgpa float64 `json:"cgpa"`
+		Sem  int     `json:"sem"`
+		Rank int     `json:"rank"`
+	}
+
+	// Retrieve the student ID (SRN) from the query parameters
+	srn := r.URL.Query().Get("srn")
+	if srn == "" {
+		http.Error(w, "Missing 'srn' query parameter", http.StatusBadRequest)
+		return
+	}
+
+	// Define a slice to store the top 15 students with their Leetcode rank and statistics
+	var stats []Statistics
+	// Variable to store the relative rank of the specified SRN
+	var relativeRank int
+
+	// Raw SQL to get the top 15 students based on Leetcode ranking
+	top15Query := `
+		SELECT s.student_id AS srn, s.name, s.cgpa, s.sem, l.ranking AS rank
+		FROM student s
+		JOIN leetcode l ON s.student_id = l.student_id
+		ORDER BY l.ranking
+		LIMIT 15
+	`
+
+	// Execute the query to fetch the top 15 students
+	if err := db.Raw(top15Query).Scan(&stats).Error; err != nil {
+		http.Error(w, "Failed to retrieve top 15 data", http.StatusInternalServerError)
+		return
+	}
+
+	// Always calculate the relative rank of the specified SRN
+	relativeRankQuery := `
+		SELECT COUNT(*) + 1 AS relative_rank
+		FROM leetcode l
+		WHERE l.ranking < (SELECT ranking FROM leetcode WHERE student_id = ?)
+	`
+
+	// Execute query to find the relative rank of the specified SRN
+	if err := db.Raw(relativeRankQuery, srn).Scan(&relativeRank).Error; err != nil {
+		http.Error(w, "Failed to retrieve relative rank", http.StatusInternalServerError)
+		return
+	}
+
+	// Append the relative rank as a separate entry if the specified srn is outside the top 15
+	statsWithRank := make([]interface{}, len(stats))
+	for i, stat := range stats {
+		statsWithRank[i] = stat
+	}
+	statsWithRank = append(statsWithRank, map[string]int{"relative_rank": relativeRank})
+
+	// Set the Content-Type to application/json and return the response
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(statsWithRank); err != nil {
+		http.Error(w, "Failed to encode response to JSON", http.StatusInternalServerError)
+	}
+}
+
+func GetCGPAStatistics(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+	// Define the Statistics struct within the function
+	type Statistics struct {
+		Srn  string  `json:"srn"`
+		Name string  `json:"name"`
+		Cgpa float64 `json:"cgpa"`
+		Sem  int     `json:"sem"`
+		Rank int     `json:"rank"`
+	}
+
+	// Retrieve the student ID (SRN) from the query parameters
+	srn := r.URL.Query().Get("srn")
+	if srn == "" {
+		http.Error(w, "Missing 'srn' query parameter", http.StatusBadRequest)
+		return
+	}
+
+	// Define a slice to store the top 15 students with their CGPA and statistics
+	var stats []Statistics
+	// Variable to store the relative rank of the specified SRN based on CGPA
+	var relativeRank int
+
+	// Raw SQL to get the top 15 students based on CGPA
+	top15Query := `
+		SELECT s.student_id AS srn, s.name, s.cgpa, s.sem, l.ranking AS rank
+		FROM student s
+		JOIN leetcode l ON s.student_id = l.student_id
+		ORDER BY s.cgpa DESC
+		LIMIT 15
+	`
+
+	// Execute the query to fetch the top 15 students
+	if err := db.Raw(top15Query).Scan(&stats).Error; err != nil {
+		http.Error(w, "Failed to retrieve top 15 data", http.StatusInternalServerError)
+		return
+	}
+
+	// Calculate the relative rank of the specified SRN based on CGPA
+	relativeRankQuery := `
+		SELECT COUNT(*) + 1 AS relative_rank
+		FROM student
+		WHERE cgpa > (SELECT cgpa FROM student WHERE student_id = ?)
+	`
+
+	// Execute query to find the relative rank of the specified SRN based on CGPA
+	if err := db.Raw(relativeRankQuery, srn).Scan(&relativeRank).Error; err != nil {
+		http.Error(w, "Failed to retrieve relative rank", http.StatusInternalServerError)
+		return
+	}
+
+	// Prepare the result array, with the relative rank appended as a separate entry
+	statsWithRank := make([]interface{}, len(stats))
+	for i, stat := range stats {
+		statsWithRank[i] = stat
+	}
+	statsWithRank = append(statsWithRank, map[string]int{"relative_rank": relativeRank})
+
+	// Set the Content-Type to application/json and return the response
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(statsWithRank); err != nil {
+		http.Error(w, "Failed to encode response to JSON", http.StatusInternalServerError)
+	}
+}
+
+
 
 func main() {
 	counter := 0
@@ -933,6 +1063,14 @@ func main() {
 
 	http.HandleFunc("/getInfo", func(w http.ResponseWriter, r *http.Request) {
 		GetInfo(db, w, r)
+	})
+
+	http.HandleFunc("/getLeetCodeStatistics", func(w http.ResponseWriter, r *http.Request){
+		GetLeetCodeStatistics(db, w, r)
+	})
+
+	http.HandleFunc("/getCGPAStatistics", func(w http.ResponseWriter, r *http.Request){
+		GetCGPAStatistics(db, w, r)
 	})
 
 	fmt.Println("Server is running on port 8000")
