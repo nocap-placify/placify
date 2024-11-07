@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"sync"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
@@ -737,7 +737,6 @@ func GetLeetCodeStatistics(db *gorm.DB, w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-
 func GetCGPAStatistics(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	// Define the Statistics struct within the function
 	type Statistics struct {
@@ -801,8 +800,82 @@ func GetCGPAStatistics(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func deleteStudent(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+	srn := r.URL.Query().Get("srn")
+	var leetcodeID string
+	var githubID string
 
+	// Start a transaction to ensure atomicity
+	tx := db.Begin()
+	if err := tx.Raw("SELECT leetcode_id FROM leetcode WHERE student_id = ?", srn).Scan(&leetcodeID).Error; err != nil {
+		tx.Rollback()
+		http.Error(w, "Failed to retrieve leetcode_id", http.StatusInternalServerError)
+		return
 
+	}
+	if err := tx.Raw("SELECT github_id FROM github WHERE student_id = ?", srn).Scan(&githubID).Error; err != nil {
+		tx.Rollback()
+		http.Error(w, "Failed to retrieve github_id", http.StatusInternalServerError)
+		return
+	}
+
+	// Check if the student exists before attempting to delete
+	var studentCount int64
+	if err := tx.Raw("SELECT COUNT(*) FROM student WHERE student_id = ?", srn).Scan(&studentCount).Error; err != nil {
+		tx.Rollback()
+		http.Error(w, "Failed to check student existence", http.StatusInternalServerError)
+		return
+	}
+
+	if studentCount == 0 {
+		tx.Rollback()
+		http.Error(w, "Student not found", http.StatusNotFound)
+		return
+	}
+
+	// Delete from tables that do not have ON DELETE CASCADE
+	if err := tx.Exec("DELETE FROM mentor_sessions WHERE student_id = ?", srn).Error; err != nil {
+		tx.Rollback()
+		http.Error(w, "Failed to delete from mentor_sessions", http.StatusInternalServerError)
+		return
+	}
+	if err := tx.Exec("DELETE FROM problems WHERE leetcode_id = ?", leetcodeID).Error; err != nil {
+		tx.Rollback()
+		http.Error(w, "Failed to delete from problems", http.StatusInternalServerError)
+		return
+	}
+	if err := tx.Exec("DELETE FROM leetcode WHERE student_id = ?", srn).Error; err != nil {
+		tx.Rollback()
+		http.Error(w, "Failed to delete from leetcode", http.StatusInternalServerError)
+		return
+	}
+	if err := tx.Exec("DELETE FROM repository WHERE github_id = ?", srn).Error; err != nil {
+		tx.Rollback()
+		http.Error(w, "Failed to delete from repository", http.StatusInternalServerError)
+		return
+	}
+	if err := tx.Exec("DELETE FROM github WHERE student_id = ?", srn).Error; err != nil {
+		tx.Rollback()
+		http.Error(w, "Failed to delete from github", http.StatusInternalServerError)
+		return
+	}
+
+	// Delete the student record itself; this will cascade delete in tables with ON DELETE CASCADE
+	if err := tx.Exec("DELETE FROM student WHERE student_id = ?", srn).Error; err != nil {
+		tx.Rollback()
+		http.Error(w, "Failed to delete student", http.StatusInternalServerError)
+		return
+	}
+
+	// Commit transaction
+	if err := tx.Commit().Error; err != nil {
+		http.Error(w, "Failed to commit transaction", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Student and all associated records deleted successfully"))
+}
 
 func main() {
 	start := time.Now()
@@ -810,17 +883,17 @@ func main() {
 	dsn := "host=100.102.21.101 user=postgres password=dbms_porj dbname=dbms_project port=5432 sslmode=disable TimeZone=Asia/Shanghai"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-			panic("failed to connect database")
+		panic("failed to connect database")
 	}
 
 	sqlDB, err := db.DB()
 	if err != nil {
-			panic("failed to get database handle")
+		panic("failed to get database handle")
 	}
 
 	err = sqlDB.Ping()
 	if err != nil {
-			panic("failed to ping database")
+		panic("failed to ping database")
 	}
 
 	fmt.Println("Successfully connected to the database!")
@@ -834,282 +907,287 @@ func main() {
 	wg.Add(2)
 
 	go func() {
-			defer wg.Done()
-			file, err := os.Open("data.csv")
-			if err != nil {
-					errorChan <- fmt.Errorf("could not open CSV file: %v", err)
-					return
-			}
-			defer file.Close()
+		defer wg.Done()
+		file, err := os.Open("data.csv")
+		if err != nil {
+			errorChan <- fmt.Errorf("could not open CSV file: %v", err)
+			return
+		}
+		defer file.Close()
 
-			reader := csv.NewReader(file)
-			decoder, err := csvutil.NewDecoder(reader)
-			if err != nil {
-					errorChan <- fmt.Errorf("could not create CSV decoder: %v", err)
-					return
-			}
+		reader := csv.NewReader(file)
+		decoder, err := csvutil.NewDecoder(reader)
+		if err != nil {
+			errorChan <- fmt.Errorf("could not create CSV decoder: %v", err)
+			return
+		}
 
-			var all_info []Info
-			for {
-					var sing_info Info
-					if err := decoder.Decode(&sing_info); err != nil {
-							if err == io.EOF {
-									break
-							}
-							errorChan <- fmt.Errorf("could not decode record: %v", err)
-							return
-					}
-					all_info = append(all_info, sing_info)
+		var all_info []Info
+		for {
+			var sing_info Info
+			if err := decoder.Decode(&sing_info); err != nil {
+				if err == io.EOF {
+					break
+				}
+				errorChan <- fmt.Errorf("could not decode record: %v", err)
+				return
 			}
-			infoChan <- all_info
+			all_info = append(all_info, sing_info)
+		}
+		infoChan <- all_info
 	}()
 
 	go func() {
-			defer wg.Done()
-			mentor_file, err := os.Open("mentor_sesh.csv")
-			if err != nil {
-					errorChan <- fmt.Errorf("failed to open mentor csv file: %v", err)
-					return
-			}
-			defer mentor_file.Close()
+		defer wg.Done()
+		mentor_file, err := os.Open("mentor_sesh.csv")
+		if err != nil {
+			errorChan <- fmt.Errorf("failed to open mentor csv file: %v", err)
+			return
+		}
+		defer mentor_file.Close()
 
-			mentor_reader := csv.NewReader(mentor_file)
-			mentor_decoder, err := csvutil.NewDecoder(mentor_reader)
-			if err != nil {
-					errorChan <- fmt.Errorf("couldn't make mentor decoder: %v", err)
-					return
-			}
+		mentor_reader := csv.NewReader(mentor_file)
+		mentor_decoder, err := csvutil.NewDecoder(mentor_reader)
+		if err != nil {
+			errorChan <- fmt.Errorf("couldn't make mentor decoder: %v", err)
+			return
+		}
 
-			var mentor_info []Mentor_Session_CSV
-			for {
-					var men_info Mentor_Session_CSV
-					if err := mentor_decoder.Decode(&men_info); err != nil {
-							if err == io.EOF {
-									break
-							}
-							errorChan <- fmt.Errorf("couldn't decode mentor record: %v", err)
-							return
-					}
-					mentor_info = append(mentor_info, men_info)
+		var mentor_info []Mentor_Session_CSV
+		for {
+			var men_info Mentor_Session_CSV
+			if err := mentor_decoder.Decode(&men_info); err != nil {
+				if err == io.EOF {
+					break
+				}
+				errorChan <- fmt.Errorf("couldn't decode mentor record: %v", err)
+				return
 			}
-			mentorInfoChan <- mentor_info
+			mentor_info = append(mentor_info, men_info)
+		}
+		mentorInfoChan <- mentor_info
 	}()
 
 	go func() {
-			wg.Wait()
-			close(infoChan)
-			close(mentorInfoChan)
-			close(errorChan)
+		wg.Wait()
+		close(infoChan)
+		close(mentorInfoChan)
+		close(errorChan)
 	}()
 
 	go func() {
-			for err := range errorChan {
-					log.Fatal(err)
-			}
+		for err := range errorChan {
+			log.Fatal(err)
+		}
 	}()
 
 	var all_info []Info
 	var mentor_info []Mentor_Session_CSV
 
 	for i := 0; i < 2; i++ {
-			select {
-			case info := <-infoChan:
-					all_info = info
-			case mentorInfo := <-mentorInfoChan:
-					mentor_info = mentorInfo
-			}
+		select {
+		case info := <-infoChan:
+			all_info = info
+		case mentorInfo := <-mentorInfoChan:
+			mentor_info = mentorInfo
+		}
 	}
 
 	for _, student := range all_info {
-			fmt.Printf("Name: %s, SRN: %s, CGPA: %.2f, Sem: %d, Email: %s, Phone: %s, Degree: %s, Stream: %s, Gender: %s, GitHub: %s, LeetCode: %s, Mentor: %s, Resume: %s\n",
-					student.Name, student.StudentID, student.CGPA, student.Sem, student.Email, student.PhoneNo,
-					student.Degree, student.Stream, student.Gender, student.GithubProfile,
-					student.LeetcodeProfile, student.MentorID, student.Resume, student.Linkedin)
+		fmt.Printf("Name: %s, SRN: %s, CGPA: %.2f, Sem: %d, Email: %s, Phone: %s, Degree: %s, Stream: %s, Gender: %s, GitHub: %s, LeetCode: %s, Mentor: %s, Resume: %s\n",
+			student.Name, student.StudentID, student.CGPA, student.Sem, student.Email, student.PhoneNo,
+			student.Degree, student.Stream, student.Gender, student.GithubProfile,
+			student.LeetcodeProfile, student.MentorID, student.Resume, student.Linkedin)
 
-			mentorID, err := fetchMentorID(db, student.MentorID)
-			if err != nil {
-					log.Printf("Could not find mentor ID for %s: %v", student.MentorID, err)
-					continue
+		mentorID, err := fetchMentorID(db, student.MentorID)
+		if err != nil {
+			log.Printf("Could not find mentor ID for %s: %v", student.MentorID, err)
+			continue
+		}
+
+		username_np := student.GithubProfile
+		token := ""
+		username, err := getUsernameFromURL(username_np)
+		profile := fetchProfileData(username, token)
+		github := Github{
+			GithubID:  student.GithubProfile,
+			StudentID: student.StudentID,
+			Username:  profile.Username,
+			Bio:       profile.Bio,
+			RepoCount: profile.RepoCount,
+		}
+		git_prof := student.GithubProfile
+		log.Println(mentorID)
+
+		student := Student{
+			StudentID: student.StudentID,
+			Name:      student.Name,
+			PhoneNo:   student.PhoneNo,
+			Dob:       student.DOB,
+			Gender:    student.Gender,
+			Resume:    student.Resume,
+			Sem:       student.Sem,
+			MentorID:  mentorID,
+			CGPA:      student.CGPA,
+			Email:     student.Email,
+			Age:       student.Age,
+			Linkedin:  student.Linkedin,
+			Degree:    student.Degree,
+			Stream:    student.Stream,
+		}
+
+		resumePath := filepath.Join("/home/suraj/Documents/Resumes", student.Resume)
+		student.Resume = resumePath
+
+		err = insertStudent(db, student)
+		if err != nil {
+			log.Fatal("failed to insert student:", err)
+		}
+		log.Println("Student inserted successfully")
+
+		err = insertGithub(db, github)
+		if err != nil {
+			log.Fatal("failed to insert github:", err)
+		}
+		log.Println("github inserted successfully")
+
+		// Rest of the repository processing code remains the same
+		fmt.Printf("Username: %s\n", profile.Username)
+		fmt.Printf("Bio: %s\n", profile.Bio)
+		fmt.Printf("Public Repositories: %s\n", profile.RepoCount)
+		fmt.Println("Pinned Repositories:")
+
+		for _, repo := range profile.PinnedRepos {
+			fmt.Printf("Repository Name: %s\n", repo.Name)
+			fmt.Printf("About: %s\n", repo.About)
+			fmt.Printf("Languages Used: %s\n", strings.Join(repo.Languages, ", "))
+			test_repo := Repository{
+				RepoID:   git_prof + "/" + repo.Name,
+				GithubID: git_prof,
+				RepoName: repo.Name,
+				Language: strings.Join(repo.Languages, ", "),
+				Desc:     repo.About,
 			}
-
-			username_np := student.GithubProfile
-			token := ""
-			username, err := getUsernameFromURL(username_np)
-			profile := fetchProfileData(username, token)
-			github := Github{
-					GithubID:  student.GithubProfile,
-					StudentID: student.StudentID,
-					Username:  profile.Username,
-					Bio:       profile.Bio,
-					RepoCount: profile.RepoCount,
+			fmt.Printf("testing repository struct repo:%s, git:%s, reponame:%s, lang:%s, desc:%s\n", test_repo.RepoID, test_repo.GithubID, test_repo.RepoName, test_repo.Language, test_repo.Desc)
+			if err := insertRepository(db, test_repo); err != nil {
+				log.Fatalf("Failed to insert repository: %v", err)
+			} else {
+				log.Println("Repository inserted successfully")
 			}
-			git_prof := student.GithubProfile
-			log.Println(mentorID)
-
-			student := Student{
-					StudentID: student.StudentID,
-					Name:      student.Name,
-					PhoneNo:   student.PhoneNo,
-					Dob:       student.DOB,
-					Gender:    student.Gender,
-					Resume:    student.Resume,
-					Sem:       student.Sem,
-					MentorID:  mentorID,
-					CGPA:      student.CGPA,
-					Email:     student.Email,
-					Age:       student.Age,
-					Linkedin:  student.Linkedin,
-					Degree:    student.Degree,
-					Stream:    student.Stream,
-			}
-
-			resumePath := filepath.Join("/home/suraj/Documents/Resumes", student.Resume)
-			student.Resume = resumePath
-
-			err = insertStudent(db, student)
-			if err != nil {
-					log.Fatal("failed to insert student:", err)
-			}
-			log.Println("Student inserted successfully")
-
-			err = insertGithub(db, github)
-			if err != nil {
-					log.Fatal("failed to insert github:", err)
-			}
-			log.Println("github inserted successfully")
-
-			// Rest of the repository processing code remains the same
-			fmt.Printf("Username: %s\n", profile.Username)
-			fmt.Printf("Bio: %s\n", profile.Bio)
-			fmt.Printf("Public Repositories: %s\n", profile.RepoCount)
-			fmt.Println("Pinned Repositories:")
-
-			for _, repo := range profile.PinnedRepos {
-					fmt.Printf("Repository Name: %s\n", repo.Name)
-					fmt.Printf("About: %s\n", repo.About)
-					fmt.Printf("Languages Used: %s\n", strings.Join(repo.Languages, ", "))
-					test_repo := Repository{
-							RepoID:   git_prof + "/" + repo.Name,
-							GithubID: git_prof,
-							RepoName: repo.Name,
-							Language: strings.Join(repo.Languages, ", "),
-							Desc:     repo.About,
-					}
-					fmt.Printf("testing repository struct repo:%s, git:%s, reponame:%s, lang:%s, desc:%s\n", test_repo.RepoID, test_repo.GithubID, test_repo.RepoName, test_repo.Language, test_repo.Desc)
-					if err := insertRepository(db, test_repo); err != nil {
-							log.Fatalf("Failed to insert repository: %v", err)
-					} else {
-							log.Println("Repository inserted successfully")
-					}
-			}
+		}
 	}
 
 	// Process LeetCode information
 	for _, student := range all_info {
-			if username, err := getUsernameFromURL(student.LeetcodeProfile); err == nil {
-					leetProfile := fetchLeetCodeProfileData(username)
-					fmt.Printf("LeetCode Username: %s, Total Solved: %d, Easy: %d, Medium: %d, Hard: %d, Rank: %d\n",
-							leetProfile.Username, leetProfile.TotalSolved, leetProfile.EasySolved, leetProfile.MediumSolved, leetProfile.HardSolved, leetProfile.Ranking)
+		if username, err := getUsernameFromURL(student.LeetcodeProfile); err == nil {
+			leetProfile := fetchLeetCodeProfileData(username)
+			fmt.Printf("LeetCode Username: %s, Total Solved: %d, Easy: %d, Medium: %d, Hard: %d, Rank: %d\n",
+				leetProfile.Username, leetProfile.TotalSolved, leetProfile.EasySolved, leetProfile.MediumSolved, leetProfile.HardSolved, leetProfile.Ranking)
 
-					leetcodeData := LeetCode{
-							LeetCodeID: student.LeetcodeProfile,
-							StudentID:  student.StudentID,
-							Username:   leetProfile.Username,
-							Rank:      leetProfile.Ranking,
-					}
+			leetcodeData := LeetCode{
+				LeetCodeID: student.LeetcodeProfile,
+				StudentID:  student.StudentID,
+				Username:   leetProfile.Username,
+				Rank:       leetProfile.Ranking,
+			}
 
-					err = insertLeetCode(db, leetcodeData)
-					if err != nil {
-							log.Printf("Failed to insert LeetCode data for %s: %v", student.LeetcodeProfile, err)
-					} else {
-							log.Println("LeetCode data inserted successfully")
-					}
+			err = insertLeetCode(db, leetcodeData)
+			if err != nil {
+				log.Printf("Failed to insert LeetCode data for %s: %v", student.LeetcodeProfile, err)
 			} else {
-					log.Printf("Skipping invalid LeetCode URL for student %s: %v", student.Name, err)
+				log.Println("LeetCode data inserted successfully")
 			}
+		} else {
+			log.Printf("Skipping invalid LeetCode URL for student %s: %v", student.Name, err)
+		}
 
-			if userleet, err := getUsernameFromURL(student.LeetcodeProfile); err == nil {
-					leetProfile := fetchLeetCodeProfileData(userleet)
-					url := fmt.Sprintf("https://leetcode.com/%s", userleet)
-					problems := Problems{
-							ProblemID:  counter,
-							LeetcodeID: url,
-							NoEasy:     leetProfile.EasySolved,
-							NoMedium:   leetProfile.MediumSolved,
-							NoHard:     leetProfile.HardSolved,
-					}
-					err = insertProblems(db, problems)
-					if err != nil {
-							log.Fatal("failed to insert problems", err)
-					}
-					log.Println("problems inserted successfully")
-					counter = counter + 1
+		if userleet, err := getUsernameFromURL(student.LeetcodeProfile); err == nil {
+			leetProfile := fetchLeetCodeProfileData(userleet)
+			url := fmt.Sprintf("https://leetcode.com/%s", userleet)
+			problems := Problems{
+				ProblemID:  counter,
+				LeetcodeID: url,
+				NoEasy:     leetProfile.EasySolved,
+				NoMedium:   leetProfile.MediumSolved,
+				NoHard:     leetProfile.HardSolved,
 			}
+			err = insertProblems(db, problems)
+			if err != nil {
+				log.Fatal("failed to insert problems", err)
+			}
+			log.Println("problems inserted successfully")
+			counter = counter + 1
+		}
 	}
 
 	// Process mentor sessions
 	for _, m_info := range mentor_info {
-			m_id, err := fetchMentorID(db, m_info.MentorID)
-			if err != nil {
-					break
-			}
-			fmt.Printf("mentor_id: %d stud_id: %s", m_id, m_info.StudentID)
-			m_str := Mentor_Session_DB{
-					MentorID:  m_id,
-					StudentID: m_info.StudentID,
-					Date:      m_info.Date,
-					Advice:    m_info.Advice,
-			}
-			fmt.Printf("advice: %s\n", m_str.Advice)
-			err = insertMentorSessions(db, m_str)
-			if err != nil {
-					log.Fatal("failed to insert mentor sessions", err)
-			}
-			log.Println("mentor sessions inserted successfully")
+		m_id, err := fetchMentorID(db, m_info.MentorID)
+		if err != nil {
+			break
+		}
+		fmt.Printf("mentor_id: %d stud_id: %s", m_id, m_info.StudentID)
+		m_str := Mentor_Session_DB{
+			MentorID:  m_id,
+			StudentID: m_info.StudentID,
+			Date:      m_info.Date,
+			Advice:    m_info.Advice,
+		}
+		fmt.Printf("advice: %s\n", m_str.Advice)
+		err = insertMentorSessions(db, m_str)
+		if err != nil {
+			log.Fatal("failed to insert mentor sessions", err)
+		}
+		log.Println("mentor sessions inserted successfully")
 	}
 
 	fmt.Printf("!!!done setting up database!!!")
 
 	// HTTP handlers remain the same
 	http.HandleFunc("/student", func(w http.ResponseWriter, r *http.Request) {
-			GetStudentName(db, w, r)
+		GetStudentName(db, w, r)
 	})
 
 	http.HandleFunc("/getGithub", func(w http.ResponseWriter, r *http.Request) {
-			GetStudentGithub(db, w, r)
+		GetStudentGithub(db, w, r)
 	})
 
 	http.HandleFunc("/getLeetcode", func(w http.ResponseWriter, r *http.Request) {
-			GetLeetcode(db, w, r)
+		GetLeetcode(db, w, r)
 	})
 
 	http.HandleFunc("/getResume", func(w http.ResponseWriter, r *http.Request) {
-			GetResume(db, w, r)
+		GetResume(db, w, r)
 	})
 
 	http.HandleFunc("/getMentorSessions", func(w http.ResponseWriter, r *http.Request) {
-			GetMentorSessions(db, w, r)
+		GetMentorSessions(db, w, r)
 	})
 
 	http.HandleFunc("/getLinkedin", func(w http.ResponseWriter, r *http.Request) {
-			GetLinkedin(db, w, r)
+		GetLinkedin(db, w, r)
 	})
 
 	http.HandleFunc("/getInfo", func(w http.ResponseWriter, r *http.Request) {
-			GetInfo(db, w, r)
+		GetInfo(db, w, r)
 	})
 
 	http.HandleFunc("/getLeetCodeStatistics", func(w http.ResponseWriter, r *http.Request) {
-			GetLeetCodeStatistics(db, w, r)
+		GetLeetCodeStatistics(db, w, r)
 	})
 
 	http.HandleFunc("/getCGPAStatistics", func(w http.ResponseWriter, r *http.Request) {
-			GetCGPAStatistics(db, w, r)
+		GetCGPAStatistics(db, w, r)
 	})
 
+	http.HandleFunc("/deleteStudent", func(w http.ResponseWriter, r *http.Request) {
+		deleteStudent(db, w, r)
+	})
 	elapsed := time.Since(start)
-	fmt.Printf("\nElapsed Time: %s\n",elapsed)
+	fmt.Printf("\nElapsed Time: %s\n", elapsed)
 
 	fmt.Println("Server is running on port 8000")
 	http.ListenAndServe(":8000", handlers.CORS()(http.DefaultServeMux))
 }
+
+//testing.....

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useLocation } from 'react-router-dom';
+import { useLocation ,useNavigate} from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from "../components/card";
 import Background from '../assets/backgroundblue.png';
@@ -17,6 +17,7 @@ import { BsFillCalendarFill } from 'react-icons/bs';
 import { ReactComponent as LeaderboardIcon } from '../assets/leaderboard-svgrepo-com.svg';
 import { FaBookOpen } from 'react-icons/fa';
 import { FaRegFileAlt } from 'react-icons/fa';
+
 
 interface MousePosition {
   x: number;
@@ -69,13 +70,16 @@ interface MentorSession {
 interface LinkedInData {
   Linkedin: string; // Define the expected structure of LinkedIn data here
 }
-
-
+interface Student {
+  srn: string;
+  name: string;
+}
 export const Dashboard = () => {
   const [mousePosition, setMousePosition] = useState<MousePosition>({ x: 0, y: 0 });
   const [isVisible, setIsVisible] = useState(false);
   const [scale, setScale] = useState(1);
   const location = useLocation();
+  const navigate = useNavigate(); // Initialize navigate function
   const { studentName, srn: studentSRN } = location.state || {};
   const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -91,7 +95,21 @@ export const Dashboard = () => {
   const [isStatsLoading, setIsStatsLoading] = useState(false);
   const [cgpaStats, setCgpaStats] = useState(null);
   const [leetcodeStats, setLeetcodeStats] = useState(null);
+  const [redButtonResponse, setRedButtonResponse] = useState<string | null>(null);
+  const [confirmationModal, setConfirmationModal] = useState(false); // New state for confirmation modal
   
+  const [selectedStats, setSelectedStats] = useState('cgpa');
+  const [cgpaData, setCgpaData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  // const [showModal, setShowModal] = useState(false);
+  // const [modalContent, setModalContent] = useState(null);
+
+  useEffect(() => {
+    // Log whenever selectedStats is updated
+    console.log('Selected Stats changed:', selectedStats);
+    window.setSelectedStats = setSelectedStats; // Expose setSelectedStats function to global scope
+  }, [selectedStats]); 
 
   useEffect(() => {
     setIsVisible(true);
@@ -187,6 +205,31 @@ export const Dashboard = () => {
       setIsMentorSessionLoading(false);
     }
   };
+  const handleRedButtonClick = () => {
+    setConfirmationModal(true); // Open the confirmation modal
+  };
+  const confirmDelete = async () => {
+    setRedButtonResponse("Loading...");
+    setConfirmationModal(false); // Close confirmation modal
+
+    try {
+      const response = await axios.get(`http://100.102.21.101:8000/deleteStudent?srn=${studentSRN}`);
+      if (response.status === 200) {
+        setRedButtonResponse("Student deleted successfully!");
+        setTimeout(() => navigate("/"), 2000); // Redirect to landing page after 2 seconds
+      } else {
+        setRedButtonResponse("Failed to delete student.");
+      }
+    } catch (error) {
+      console.error("Error during API call:", error);
+      setRedButtonResponse("Error occurred. Please try again.");
+    }
+  };
+  const closeConfirmationModal = () => {
+    setConfirmationModal(false); // Close the modal without deleting
+  };
+
+
 
   // const handleLinkedInClick = () => {
   //   if (linkedinUrl) {
@@ -222,58 +265,106 @@ const fetchLeetcodeStats = async (srn) => {
     return null;
   }
 };
+
+const [modalText, setModalText] = useState("");
+
 const handleStatsCardClick = async (srn) => {
-  setShowModal(true);
-  setModalContent(
-    <div className="flex justify-center items-center min-h-[200px]">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
-    </div>
-  );
+  // Show the modal with a loading spinner first
+  openModalWithLoading(); // Open modal with loading spinner
 
-  const cgpaData = await fetchCgpaStats(srn);
-  const leetcodeData = await fetchLeetcodeStats(srn);
+  // Fetch CGPA and Leetcode data
+  try {
+    const cgpaData = await fetchCgpaStats(srn);
+    const leetcodeData = await fetchLeetcodeStats(srn);
 
-  if (cgpaData && leetcodeData) {
-    const cgpaLeaderboard = cgpaData.leaderboard || [];  // Ensure it's an array
-    const cgpaRelativeRank = cgpaData.relative_rank;
+    if (cgpaData && leetcodeData) {
+      const cgpaLeaderboard = cgpaData.leaderboard || [];
+      const cgpaRelativeRank = cgpaData.relative_rank;
 
-    const leetcodeLeaderboard = leetcodeData.leaderboard || [];  // Ensure it's an array
-    const leetcodeRelativeRank = leetcodeData.relative_rank;
+      const leetcodeLeaderboard = leetcodeData.leaderboard || [];
+      const leetcodeRelativeRank = leetcodeData.relative_rank;
 
-    setModalContent(
-      <div className="p-6 bg-white rounded-lg shadow-lg">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">Stats</h2>
-        
-        <div className="text-lg font-semibold text-gray-700 mb-4">CGPA Rank Stats:</div>
-        <ul className="space-y-2 mb-4">
-          {cgpaLeaderboard.map((entry, index) => (
-            <li key={index} className="text-gray-600">
-              <span className="font-medium">Name:</span> {entry.name}, 
-              <span className="font-medium"> CGPA:</span> {entry.cgpa}, 
-              <span className="font-medium"> Rank:</span> {entry.rank}
-            </li>
-          ))}
-        </ul>
-        <div className="text-gray-800 font-semibold mb-4">
-          CGPA Relative Rank: {cgpaRelativeRank}
+      // After fetching data, update the modal based on selectedStats
+      setModalContent(
+        <div className="p-6 bg-white rounded-lg shadow-lg relative" onClick={(e) => e.stopPropagation()}>
+          {/* Close Button */}
+          <button
+            className="absolute top-2 right-2 text-gray-700"
+            onClick={() => {
+              console.log("Close button clicked");
+              closeModal();
+            }}
+          >
+            
+          </button>
+
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Stats</h2>
+
+          {/* Buttons for toggling between CGPA and Leetcode */}
+          <div className="flex space-x-4 mb-4">
+            <button
+              className={`px-4 py-2 rounded ${selectedStats === 'cgpa' ? 'bg-purple-500 text-white' : 'bg-gray-200 text-gray-800'}`}
+              onClick={() => handleStatButtonClick('cgpa', cgpaLeaderboard, cgpaRelativeRank, leetcodeLeaderboard, leetcodeRelativeRank)}
+            >
+              CGPA
+            </button>
+            <button
+              className={`px-4 py-2 rounded ${selectedStats === 'leetcode' ? 'bg-purple-500 text-white' : 'bg-gray-200 text-gray-800'}`}
+              onClick={() => handleStatButtonClick('leetcode', cgpaLeaderboard, cgpaRelativeRank, leetcodeLeaderboard, leetcodeRelativeRank)}
+            >
+              LeetCode
+            </button>
+          </div>
+
+          {/* Conditionally render CGPA stats */}
+          {selectedStats === 'cgpa' && (
+            <>
+              <div className="text-lg font-semibold text-gray-700 mb-4">CGPA Rank Stats:</div>
+              <ul className="space-y-2 mb-4">
+                {cgpaLeaderboard.map((entry, index) => (
+                  <li key={index} className="text-gray-600">
+                    <span className="font-medium">Name:</span> {entry.name}, 
+                    <span className="font-medium"> CGPA:</span> {entry.cgpa}, 
+                    <span className="font-medium"> Rank:</span> {entry.rank}
+                  </li>
+                ))}
+              </ul>
+              <div className="text-gray-800 font-semibold mb-4">
+                CGPA Relative Rank: {cgpaRelativeRank}
+              </div>
+            </>
+          )}
+
+          {/* Conditionally render Leetcode stats */}
+          {selectedStats === 'leetcode' && (
+            <>
+              <div className="text-lg font-semibold text-gray-700 mb-4">LeetCode Rank Stats:</div>
+              <ul className="space-y-2">
+                {leetcodeLeaderboard.map((entry, index) => (
+                  <li key={index} className="text-gray-600">
+                    <span className="font-medium">Name:</span> {entry.name}, 
+                    <span className="font-medium"> Rank:</span> {entry.rank}
+                  </li>
+                ))}
+              </ul>
+              <div className="text-gray-800 font-semibold">
+                LeetCode Relative Rank: {leetcodeRelativeRank}
+              </div>
+            </>
+          )}
         </div>
-        
-        <div className="text-lg font-semibold text-gray-700 mb-4">LeetCode Rank Stats:</div>
-        <ul className="space-y-2">
-          {leetcodeLeaderboard.map((entry, index) => (
-            <li key={index} className="text-gray-600">
-              <span className="font-medium">Name:</span> {entry.name}, 
-              <span className="font-medium"> CGPA:</span> {entry.cgpa}, 
-              <span className="font-medium"> Rank:</span> {entry.rank}
-            </li>
-          ))}
-        </ul>
-        <div className="text-gray-800 font-semibold">
-          LeetCode Relative Rank: {leetcodeRelativeRank}
+      );
+    } else {
+      // Set error message if data is not available
+      setModalContent(
+        <div className="p-6 bg-white rounded-lg shadow-lg">
+          <h2 className="text-xl font-bold text-red-600">Error loading stats data</h2>
+          <p className="text-gray-600">Please try again later.</p>
         </div>
-      </div>
-    );
-  } else {
+      );
+    }
+  } catch (error) {
+    console.error("Error fetching stats:", error);
     setModalContent(
       <div className="p-6 bg-white rounded-lg shadow-lg">
         <h2 className="text-xl font-bold text-red-600">Error loading stats data</h2>
@@ -282,6 +373,102 @@ const handleStatsCardClick = async (srn) => {
     );
   }
 };
+
+// Open modal with loading spinner
+const openModalWithLoading = () => {
+  setShowModal(true); // Open the modal
+  setModalContent(
+    <div className="flex justify-center items-center min-h-[200px]">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+    </div>
+  );
+};
+
+// Close modal
+
+// Handle the button click (CGPA or LeetCode)
+const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcodeLeaderboard, leetcodeRelativeRank) => {
+  // Close the modal and reload it with new stats
+  setShowModal(false); // Close modal first
+
+  setTimeout(() => {
+    setSelectedStats(stat); // Update the selected state
+    openModalWithLoading(); // Reopen the modal with the loading spinner
+
+    // After the modal is reopened, update the content based on selected stats
+    setModalContent(
+      <div className="p-6 bg-white rounded-lg shadow-lg relative" onClick={(e) => e.stopPropagation()}>
+        {/* Close Button */}
+        <button
+          className="absolute top-2 right-2 text-gray-700"
+          onClick={() => closeModal()}
+        >
+          
+        </button>
+
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">Stats</h2>
+
+        {/* Buttons for toggling between CGPA and Leetcode */}
+        <div className="flex space-x-4 mb-4">
+          <button
+            className={`px-4 py-2 rounded ${stat === 'cgpa' ? 'bg-purple-500 text-white' : 'bg-gray-200 text-gray-800'}`}
+            onClick={() => handleStatButtonClick('cgpa', cgpaLeaderboard, cgpaRelativeRank, leetcodeLeaderboard, leetcodeRelativeRank)}
+          >
+            CGPA
+          </button>
+          <button
+            className={`px-4 py-2 rounded ${stat === 'leetcode' ? 'bg-purple-500 text-white' : 'bg-gray-200 text-gray-800'}`}
+            onClick={() => handleStatButtonClick('leetcode', cgpaLeaderboard, cgpaRelativeRank, leetcodeLeaderboard, leetcodeRelativeRank)}
+          >
+            LeetCode
+          </button>
+        </div>
+
+        {/* Conditionally render CGPA stats */}
+        {stat === 'cgpa' && (
+          <>
+            <div className="text-lg font-semibold text-gray-700 mb-4">CGPA Rank Stats:</div>
+            <ul className="space-y-2 mb-4">
+              {cgpaLeaderboard.map((entry, index) => (
+                <li key={index} className="text-gray-600">
+                  <span className="font-medium">Name:</span> {entry.name}, 
+                  <span className="font-medium"> CGPA:</span> {entry.cgpa}, 
+                  <span className="font-medium"> Rank:</span> {entry.rank}
+                </li>
+              ))}
+            </ul>
+            <div className="text-gray-800 font-semibold mb-4">
+              CGPA Relative Rank: {cgpaRelativeRank}
+            </div>
+          </>
+        )}
+
+        {/* Conditionally render Leetcode stats */}
+        {stat === 'leetcode' && (
+          <>
+            <div className="text-lg font-semibold text-gray-700 mb-4">LeetCode Rank Stats:</div>
+            <ul className="space-y-2">
+              {leetcodeLeaderboard.map((entry, index) => (
+                <li key={index} className="text-gray-600">
+                  <span className="font-medium">Name:</span> {entry.name}, 
+                  <span className="font-medium"> Rank:</span> {entry.rank}
+                </li>
+              ))}
+            </ul>
+            <div className="text-gray-800 font-semibold">
+              LeetCode Relative Rank: {leetcodeRelativeRank}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }, 0); // Slight delay to ensure modal closes before reopening
+};
+
+
+
+
+
 
 
   const handleCardClick = async (type: string, srn: string) => {
@@ -571,22 +758,73 @@ const handleStatsCardClick = async (srn) => {
                 />
             ))}
         </div>
+
         {/* <AnimatePresence>
+=======
+        <AnimatePresence>
+        <motion.div
+          className="absolute top-4 right-4"
+          variants={item}
+          initial="hidden"
+          animate="visible"
+          exit="hidden"
+          style={{ zIndex: 1000 }}
+        >
+          <button
+            onClick={handleRedButtonClick}  // Open confirmation modal on click
+            className="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition duration-300"
+            style={{ position: 'relative', zIndex: 1000 }}
+          >
+            Delete
+          </button>
+
+          {/* Display the response or loading message */}
+          {redButtonResponse && (
+            <motion.div
+              className="mt-4 text-white"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <p>{redButtonResponse}</p>
+            </motion.div>
+          )}
+        </motion.div>
+
+        {/* Confirmation Modal */}
+        {confirmationModal && (
+
   <motion.div
-    className="absolute top-4 right-4"
-    variants={item}  // Use the same animation variant as the other cards
-    initial="hidden"
-    animate="visible"
-    exit="hidden"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    className="fixed inset-0 bg-gray-800 bg-opacity-90 flex items-center justify-center p-4"
+    style={{ zIndex: 1050 }} // Set a high z-index for the modal
   >
-    <button
-      //onClick={handleRedButtonClick}
-      className="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition duration-300"
-    >
-      Red Button
-    </button>
+    <div className="bg-white text-black rounded-lg w-full max-w-md p-6 shadow-lg relative">
+      <h2 className="text-xl font-bold mb-4">Confirm Delete</h2>
+      <p>Are you sure you want to delete this student?</p>
+      <div className="flex justify-end gap-4 mt-6">
+        <button
+          onClick={confirmDelete}
+          className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+        >
+          Yes
+        </button>
+        <button
+          onClick={closeConfirmationModal}
+          className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+        >
+          No
+        </button>
+      </div>
+    </div>
   </motion.div>
+
 </AnimatePresence> */}
+
+)}
+   
 
         <AnimatePresence>
       {isLoading ? (
