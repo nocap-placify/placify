@@ -14,6 +14,9 @@ import { FaMale, FaFemale } from 'react-icons/fa';
 import { FaGraduationCap } from 'react-icons/fa';
 import { GiCoinsPile, GiRank1 } from 'react-icons/gi';
 import { BsFillCalendarFill } from 'react-icons/bs';
+import { ReactComponent as LeaderboardIcon } from '../assets/leaderboard-svgrepo-com.svg';
+
+
 
 
 interface MousePosition {
@@ -86,6 +89,10 @@ export const Dashboard = () => {
   const [isMentorSessionLoading, setIsMentorSessionLoading] = useState(false);
   const [studentInfo, setStudentInfo] = useState(null);
   const [linkedinUrl, setLinkedinUrl] = useState(null);
+  const [isStatsLoading, setIsStatsLoading] = useState(false);
+  const [cgpaStats, setCgpaStats] = useState(null);
+  const [leetcodeStats, setLeetcodeStats] = useState(null);
+  
 
   useEffect(() => {
     setIsVisible(true);
@@ -189,6 +196,95 @@ export const Dashboard = () => {
   //     console.error("LinkedIn URL not available");
   //   }
   // };
+  // Function to fetch CGPA rank data
+const fetchCgpaStats = async (srn) => {
+  try {
+    const response = await axios.get(`http://100.102.21.101:8000/getCGPAStatistics?srn=${srn}`);
+    console.log("CGPA Stats Response:", response.data);  // Log the respons
+    setCgpaStats(response.data);
+    
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching CGPA stats:', error);
+    return null;
+  }
+};
+
+// Function to fetch LeetCode rank data
+const fetchLeetcodeStats = async (srn) => {
+  try {
+    const response = await axios.get(`http://100.102.21.101:8000/getLeetCodeStatistics?srn=${srn}`);
+    console.log("leetcode Stats Response:", response.data);  // Log the respons
+    setLeetcodeStats(response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching LeetCode stats:', error);
+    return null;
+  }
+};
+const handleStatsCardClick = async (srn) => {
+  setShowModal(true);
+  setModalContent(
+    <div className="flex justify-center items-center min-h-[200px]">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+    </div>
+  );
+
+  const cgpaData = await fetchCgpaStats(srn);
+  const leetcodeData = await fetchLeetcodeStats(srn);
+
+  if (cgpaData && leetcodeData) {
+    const cgpaLeaderboard = cgpaData.leaderboard || [];  // Ensure it's an array
+    const cgpaRelativeRank = cgpaData.relative_rank;
+
+    const leetcodeLeaderboard = leetcodeData.leaderboard || [];  // Ensure it's an array
+    const leetcodeRelativeRank = leetcodeData.relative_rank;
+
+    setModalContent(
+      <div className="p-6 bg-white rounded-lg shadow-lg">
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">Stats</h2>
+        
+        <div className="text-lg font-semibold text-gray-700 mb-4">CGPA Rank Stats:</div>
+        <ul className="space-y-2 mb-4">
+          {cgpaLeaderboard.map((entry, index) => (
+            <li key={index} className="text-gray-600">
+              <span className="font-medium">Name:</span> {entry.name}, 
+              <span className="font-medium"> CGPA:</span> {entry.cgpa}, 
+              <span className="font-medium"> Rank:</span> {entry.rank}
+            </li>
+          ))}
+        </ul>
+        <div className="text-gray-800 font-semibold mb-4">
+          CGPA Relative Rank: {cgpaRelativeRank}
+        </div>
+        
+        <div className="text-lg font-semibold text-gray-700 mb-4">LeetCode Rank Stats:</div>
+        <ul className="space-y-2">
+          {leetcodeLeaderboard.map((entry, index) => (
+            <li key={index} className="text-gray-600">
+              <span className="font-medium">Name:</span> {entry.name}, 
+              <span className="font-medium"> CGPA:</span> {entry.cgpa}, 
+              <span className="font-medium"> Rank:</span> {entry.rank}
+            </li>
+          ))}
+        </ul>
+        <div className="text-gray-800 font-semibold">
+          LeetCode Relative Rank: {leetcodeRelativeRank}
+        </div>
+      </div>
+    );
+  } else {
+    setModalContent(
+      <div className="p-6 bg-white rounded-lg shadow-lg">
+        <h2 className="text-xl font-bold text-red-600">Error loading stats data</h2>
+        <p className="text-gray-600">Please try again later.</p>
+      </div>
+    );
+  }
+};
+
+
   const handleCardClick = async (type: string, srn: string) => {
     if (!srn) {
       console.error('SRN is undefined');
@@ -551,6 +647,17 @@ export const Dashboard = () => {
                   icon={<SiLeetcode size={48} />}
                 />
               </motion.div>
+              <motion.div variants={item} onClick={() => handleStatsCardClick(studentSRN)}>
+  <Card 
+    backgroundColor="#FFFFCC"  // Gold background for the Stats card
+    borderColor="rgba(218, 165, 32, 1)" 
+    glowColor="rgba(218, 165, 32, 0.2)" 
+    title="Stats" 
+    content="Rank Stats" 
+    icon={<GiCoinsPile size={48} />}  // Icon for Stats card
+  />
+</motion.div>
+
               {/* New Mentor Session Card */}
   <motion.div variants={item} onClick={() => handleCardClick('MentorSession', studentSRN)}>
     <Card 
