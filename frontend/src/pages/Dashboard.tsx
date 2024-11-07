@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useLocation } from 'react-router-dom';
+import { useLocation ,useNavigate} from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from "../components/card";
 import Background from '../assets/backgroundblue.png';
@@ -15,9 +15,6 @@ import { FaGraduationCap } from 'react-icons/fa';
 import { GiCoinsPile, GiRank1 } from 'react-icons/gi';
 import { BsFillCalendarFill } from 'react-icons/bs';
 import { ReactComponent as LeaderboardIcon } from '../assets/leaderboard-svgrepo-com.svg';
-
-
-
 
 interface MousePosition {
   x: number;
@@ -70,13 +67,16 @@ interface MentorSession {
 interface LinkedInData {
   Linkedin: string; // Define the expected structure of LinkedIn data here
 }
-
-
+interface Student {
+  srn: string;
+  name: string;
+}
 export const Dashboard = () => {
   const [mousePosition, setMousePosition] = useState<MousePosition>({ x: 0, y: 0 });
   const [isVisible, setIsVisible] = useState(false);
   const [scale, setScale] = useState(1);
   const location = useLocation();
+  const navigate = useNavigate(); // Initialize navigate function
   const { studentName, srn: studentSRN } = location.state || {};
   const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -92,6 +92,8 @@ export const Dashboard = () => {
   const [isStatsLoading, setIsStatsLoading] = useState(false);
   const [cgpaStats, setCgpaStats] = useState(null);
   const [leetcodeStats, setLeetcodeStats] = useState(null);
+  const [redButtonResponse, setRedButtonResponse] = useState<string | null>(null);
+  const [confirmationModal, setConfirmationModal] = useState(false); // New state for confirmation modal
   
   const [selectedStats, setSelectedStats] = useState('cgpa');
   const [cgpaData, setCgpaData] = useState(null);
@@ -200,6 +202,31 @@ export const Dashboard = () => {
       setIsMentorSessionLoading(false);
     }
   };
+  const handleRedButtonClick = () => {
+    setConfirmationModal(true); // Open the confirmation modal
+  };
+  const confirmDelete = async () => {
+    setRedButtonResponse("Loading...");
+    setConfirmationModal(false); // Close confirmation modal
+
+    try {
+      const response = await axios.get(`http://100.102.21.101:8000/deleteStudent?srn=${studentSRN}`);
+      if (response.status === 200) {
+        setRedButtonResponse("Student deleted successfully!");
+        setTimeout(() => navigate("/"), 2000); // Redirect to landing page after 2 seconds
+      } else {
+        setRedButtonResponse("Failed to delete student.");
+      }
+    } catch (error) {
+      console.error("Error during API call:", error);
+      setRedButtonResponse("Error occurred. Please try again.");
+    }
+  };
+  const closeConfirmationModal = () => {
+    setConfirmationModal(false); // Close the modal without deleting
+  };
+
+
 
   // const handleLinkedInClick = () => {
   //   if (linkedinUrl) {
@@ -688,21 +715,65 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
             ))}
         </div>
         <AnimatePresence>
+        <motion.div
+          className="absolute top-4 right-4"
+          variants={item}
+          initial="hidden"
+          animate="visible"
+          exit="hidden"
+          style={{ zIndex: 1000 }}
+        >
+          <button
+            onClick={handleRedButtonClick}  // Open confirmation modal on click
+            className="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition duration-300"
+            style={{ position: 'relative', zIndex: 1000 }}
+          >
+            Delete
+          </button>
+
+          {/* Display the response or loading message */}
+          {redButtonResponse && (
+            <motion.div
+              className="mt-4 text-white"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <p>{redButtonResponse}</p>
+            </motion.div>
+          )}
+        </motion.div>
+
+        {/* Confirmation Modal */}
+        {confirmationModal && (
   <motion.div
-    className="absolute top-4 right-4"
-    variants={item}  // Use the same animation variant as the other cards
-    initial="hidden"
-    animate="visible"
-    exit="hidden"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    className="fixed inset-0 bg-gray-800 bg-opacity-90 flex items-center justify-center p-4"
+    style={{ zIndex: 1050 }} // Set a high z-index for the modal
   >
-    <button
-      //onClick={handleRedButtonClick}
-      className="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition duration-300"
-    >
-      Red Button
-    </button>
+    <div className="bg-white text-black rounded-lg w-full max-w-md p-6 shadow-lg relative">
+      <h2 className="text-xl font-bold mb-4">Confirm Delete</h2>
+      <p>Are you sure you want to delete this student?</p>
+      <div className="flex justify-end gap-4 mt-6">
+        <button
+          onClick={confirmDelete}
+          className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+        >
+          Yes
+        </button>
+        <button
+          onClick={closeConfirmationModal}
+          className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+        >
+          No
+        </button>
+      </div>
+    </div>
   </motion.div>
-</AnimatePresence>
+)}
+      </AnimatePresence>
 
         <AnimatePresence>
       {isLoading ? (
