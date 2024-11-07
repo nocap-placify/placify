@@ -759,8 +759,7 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
             ))}
         </div>
 
-        {/* <AnimatePresence>
-=======
+         
         <AnimatePresence>
         <motion.div
           className="absolute top-4 right-4"
@@ -820,10 +819,9 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
       </div>
     </div>
   </motion.div>
+        )}
+</AnimatePresence> 
 
-</AnimatePresence> */}
-
-)}
    
 
         <AnimatePresence>
@@ -1066,12 +1064,7 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
 >
         View Resume
       </button> */}
-      <button
-        //onClick={handleRedButtonClick}
-        className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 hover:shadow-lg hover:shadow-red-500/50 transition duration-300 border-4 border-red-500 border-opacity-50 hover:border-opacity-100"
->
-        Red Button
-      </button>
+      
     </motion.div>
   </AnimatePresence>
 
