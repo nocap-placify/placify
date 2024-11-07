@@ -15,6 +15,9 @@ import { FaGraduationCap } from 'react-icons/fa';
 import { GiCoinsPile, GiRank1 } from 'react-icons/gi';
 import { BsFillCalendarFill } from 'react-icons/bs';
 import { ReactComponent as LeaderboardIcon } from '../assets/leaderboard-svgrepo-com.svg';
+import { FaBookOpen } from 'react-icons/fa';
+import { FaRegFileAlt } from 'react-icons/fa';
+
 
 interface MousePosition {
   x: number;
@@ -629,6 +632,48 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
   }
 }
 };
+  // const handleResumeClick = async () => {
+  //   setShowModal(true);
+  //   setModalContent(
+  //     <div className="flex items-center justify-center p-12">
+  //       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+  //     </div>
+  //   );
+
+  //   try {
+  //     const response = await fetch(`http://100.102.21.101:8000/getResume?srn=${studentSRN}`);
+  //     const blob = await response.blob();
+  //     const url = URL.createObjectURL(blob);
+  //     setResumeData(url);
+
+  //     setModalContent(
+  //       <div className="p-6 bg-white rounded-lg shadow-lg flex flex-col items-center">
+  //         <h2 className="text-2xl font-bold text-gray-800 mb-4">Resume</h2>
+  //         <div className="w-full h-[600px] overflow-y-auto">
+  //           <iframe
+  //             src={url}
+  //             frameBorder="0"
+  //             title="Resume"
+  //             className="w-full h-full"
+  //           />
+  //         </div>
+  //       </div>
+  //     );
+  //   } catch (error) {
+  //     console.error("Error fetching resume data:", error);
+  //     setResumeData("Error loading resume data. Please try again later.");
+  //     setModalContent(
+  //       <div className="p-6 bg-white rounded-lg shadow-lg">
+  //         <h2 className="text-xl font-bold text-red-600">Error loading resume data</h2>
+  //         <p className="text-gray-600">Please try again later.</p>
+  //       </div>
+  //     );
+  //   }
+  // };
+  // const closeModal = () => {
+  //   setShowModal(false);
+  //   setModalContent(null);
+  // };
   const handleResumeClick = async () => {
     setShowModal(true);
     setModalContent(
@@ -658,7 +703,6 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
       );
     } catch (error) {
       console.error("Error fetching resume data:", error);
-      setResumeData("Error loading resume data. Please try again later.");
       setModalContent(
         <div className="p-6 bg-white rounded-lg shadow-lg">
           <h2 className="text-xl font-bold text-red-600">Error loading resume data</h2>
@@ -667,11 +711,11 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
       );
     }
   };
+
   const closeModal = () => {
     setShowModal(false);
     setModalContent(null);
   };
-  
 
   return(
     <div className="relative min-h-screen overflow-hidden bg-black">
@@ -714,6 +758,9 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
                 />
             ))}
         </div>
+
+        {/* <AnimatePresence>
+=======
         <AnimatePresence>
         <motion.div
           className="absolute top-4 right-4"
@@ -746,6 +793,7 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
 
         {/* Confirmation Modal */}
         {confirmationModal && (
+
   <motion.div
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
@@ -772,8 +820,11 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
       </div>
     </div>
   </motion.div>
+
+</AnimatePresence> */}
+
 )}
-      </AnimatePresence>
+   
 
         <AnimatePresence>
       {isLoading ? (
@@ -806,7 +857,7 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
             overflow: 'hidden',
           }}
         >
-          <main className="flex-grow flex flex-col items-center justify-center w-full max-w-2xl">
+          <main className="flex-grow flex flex-col items-center justify-center w-full max-w-5xl">
   <div className="text-center mb-16"> {/* Increased the bottom margin here */}
     <div className="flex items-center justify-center mb-8"> {/* Increased space below the avatar and name */}
       <img className="w-20 h-20 rounded-full mr-4" src="https://avatar.iran.liara.run/public/36" alt="User's avatar" />
@@ -847,77 +898,138 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
       )}
     </div>
   </div>
-            
-            <motion.div 
-              className="grid grid-cols-2 gap-4 w-full"
-              variants={container}
-              initial="hidden"
-              animate="visible"
-            >
-              <motion.div variants={item} onClick={() => handleCardClick('GitHub', studentSRN)}>
-                <Card 
-                  backgroundColor="rgba(255, 255, 255, 0.6)" 
-                  borderColor="rgba(36, 41, 46, 1)" 
-                  glowColor="rgba(36, 41, 46, 0.2)" 
-                  title="GitHub" 
-                  content="GitHub stats and activity" 
-                  icon={<FaGithub size={48} />}
-                />
-              </motion.div>
-              <motion.div variants={item} onClick={() => handleCardClick('LeetCode', studentSRN)}>
-                <Card 
-                  backgroundColor="rgba(255, 255, 255, 0.6)" 
-                  borderColor="rgba(255, 161, 22, 1)" 
-                  glowColor="rgba(255, 161, 22, 0.2)" 
-                  title="LeetCode" 
-                  content="LeetCode statistics" 
-                  icon={<SiLeetcode size={48} />}
-                />
-              </motion.div>
-              <motion.div variants={item} onClick={() => handleStatsCardClick(studentSRN)}>
-  <Card 
-    backgroundColor="#FFFFCC"  // Gold background for the Stats card
-    borderColor="rgba(218, 165, 32, 1)" 
-    glowColor="rgba(218, 165, 32, 0.2)" 
-    title="Stats" 
-    content="Rank Stats" 
-    icon={<GiCoinsPile size={48} />}  // Icon for Stats card
-  />
-</motion.div>
-
-              {/* New Mentor Session Card */}
-  <motion.div variants={item} onClick={() => handleCardClick('MentorSession', studentSRN)}>
-    <Card 
-      backgroundColor="#BFEE90"  // Green background for Mentor Session card
-      borderColor="rgba(34, 139, 34, 1)" 
-      glowColor="rgba(34, 139, 34, 0.2)" 
-      title="Mentor Session" 
-      content="View session details" 
-      icon={<FaChalkboardTeacher size={48} />}  // Replace with a relevant icon if needed
-    />
-  </motion.div>
-  {/* LinkedIn Card */}
-  <motion.div variants={item} onClick={handleLinkedInClick}>
-                <Card 
-                  backgroundColor="#ADD8E6"  
-                  borderColor="#005983"  
-                  glowColor="rgba(0, 119, 181, 0.2)"  
-                  title="LinkedIn" 
-                  content="LinkedIn page" 
-                  icon={<FaLinkedin size={48} />}  
-                />
-              </motion.div>
+  <div className="flex flex-col gap-y-4 w-full ">  {/* Parent container with vertical gap */}
   
-            </motion.div>
-            <button 
+  {/* Row 1: GitHub and LeetCode and linkedIN*/}
+  <motion.div 
+    className="grid grid-cols-3 gap-4 w-full"
+    variants={container}
+    initial="hidden"
+    animate="visible"
+  >
+    <motion.div 
+    variants={item} onClick={() => handleCardClick('GitHub', studentSRN)}>
+      <Card 
+        backgroundColor="rgba(255, 255, 255, 0.6)" 
+        borderColor="rgba(36, 41, 46, 1)" 
+        glowColor="rgba(36, 41, 46, 0.2)" 
+        title="GitHub" 
+        content="GitHub stats and activity "
+        icon={<FaGithub size={48} />}
+        
+      />
+    </motion.div>
+    
+    <motion.div variants={item} onClick={() => handleCardClick('LeetCode', studentSRN)}>
+      <Card 
+        backgroundColor="rgba(255, 255, 255, 0.6)" 
+        borderColor="rgba(255, 161, 22, 1)" 
+        glowColor="rgba(255, 161, 22, 0.2)" 
+        title="LeetCode" 
+        content="LeetCode statistics" 
+        icon={<SiLeetcode size={48} />}
+      />
+    </motion.div>
+
+    <motion.div variants={item} onClick={handleLinkedInClick}>
+      <Card 
+        backgroundColor="#ADD8E6"  
+        borderColor="#005983"  
+        glowColor="rgba(0, 119, 181, 0.2)"  
+        title="LinkedIn" 
+        content="LinkedIn page "
+        icon={<FaLinkedin size={48} />}  
+      />
+    </motion.div>
+
+
+  </motion.div>
+
+
+  {/* Row 2: Mentor Session and stats */}
+  <motion.div 
+    className="grid grid-cols-2  gap-x-6 w-full  "
+    variants={container}
+    initial="hidden"
+    animate="visible"
+  >
+    <motion.div 
+     className="w-[350px] h-[130px] mx-auto  -mr-1" 
+    variants={item} onClick={() => handleCardClick('MentorSession', studentSRN)}>
+      <Card 
+        backgroundColor="#BFEE90"  // Green background for Mentor Session card
+        borderColor="rgba(34, 139, 34, 1)" 
+        glowColor="rgba(34, 139, 34, 0.2)" 
+        title="Mentor Session" 
+        content="View session details"
+        icon={<FaChalkboardTeacher size={48} />}  
+      />
+    </motion.div>
+
+    <motion.div 
+    className="w-[350px] h-[130px] mx-auto -ml-1 "  // Set width to 345px and center it
+      variants={item} 
+      onClick={() => handleStatsCardClick(studentSRN)}
+    >
+      <Card 
+        backgroundColor="#FFFFCC"  // Light yellow background for the Stats card
+        borderColor="rgba(218, 165, 32, 1)" 
+        glowColor="rgba(218, 165, 32, 0.2)" 
+        title="Stats" 
+        content="Rank Stats" 
+        icon={<GiCoinsPile size={48} />}  // Icon for Stats card
+      />
+    </motion.div>
+    
+
+    
+  </motion.div>
+
+
+
+  {/* Row 3: resume */}
+  <motion.div 
+    className="grid grid-cols-1 gap-4 w-full justify-items-center"
+    variants={container}
+    initial="hidden"
+    animate="visible"
+  >
+    <motion.div 
+    className="w-[350px] h-[130px] mx-auto"  // Set width to 345px and center it
+      variants={item} 
+      onClick={() => handleResumeClick(studentSRN)}
+    >
+      <Card 
+        backgroundColor="#FFE4E1"  // Pastel pink background
+        borderColor="rgba(255, 192, 203, 1)"  // Pastel pink border color
+        glowColor="rgba(255, 192, 203, 0.4)"  // Pastel pink glow color
+        title="RESUME" 
+        content="View resume" 
+        icon={<FaRegFileAlt size={48} />}  // Icon for Stats card
+      />
+    </motion.div>
+    
+    
+  </motion.div>
+  
+  
+</div>
+
+
+
+
+
+
+
+            {/* <button 
               onClick={handleResumeClick}
               className="mt-6 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-300"
             >
               View Resume
-            </button>
+            </button> */}
           </main>
 
-          {showModal && (
+       {showModal && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -936,10 +1048,35 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
                 </div>
               </div>
             </motion.div>
-          )}
+          )} 
         </motion.div>
       )}
     </AnimatePresence>
+    <AnimatePresence>
+    <motion.div
+      className="absolute top-4 right-4 flex items-center space-x-4"
+      variants={item}
+      initial="hidden"
+      animate="visible"
+      exit="hidden"
+    >
+      {/* <button
+        onClick={handleResumeClick}
+        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/50 transition duration-300 border-4 border-blue-500 border-opacity-50 hover:border-opacity-100"
+>
+        View Resume
+      </button> */}
+      <button
+        //onClick={handleRedButtonClick}
+        className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 hover:shadow-lg hover:shadow-red-500/50 transition duration-300 border-4 border-red-500 border-opacity-50 hover:border-opacity-100"
+>
+        Red Button
+      </button>
+    </motion.div>
+  </AnimatePresence>
+
+
+
 
         <style jsx>{`
             .animate-wave {
