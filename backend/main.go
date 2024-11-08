@@ -426,7 +426,7 @@ func readPasswordHash() (string, error) {
 func GetStudentName(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	privateKey, err := loadPrivateKey("/home/suraj/Documents/keys/private_key.pem")
 	if err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		http.Error(w, "Internal server error, cant get key", http.StatusInternalServerError)
 		return
 	}
 
