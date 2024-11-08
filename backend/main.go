@@ -1233,12 +1233,14 @@ func main() {
 	elapsed := time.Since(start)
 	fmt.Printf("\nElapsed Time: %s\n", elapsed)
 
-	allowedOrigins := handlers.AllowedOrigins([]string{"*"})
-	allowedMethods := handlers.AllowedMethods([]string{"GET", "POST", "OPTIONS"})
-	allowedHeaders := handlers.AllowedHeaders([]string{"Content-Type", "Authorization"})
+	corsHandler := handlers.CORS(
+		handlers.AllowedOrigins([]string{"*"}),
+		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
+		handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "X-Encrypted-AES-Key"}),
+	)(http.DefaultServeMux)
 
 	fmt.Println("Server is running on port 8000")
-	http.ListenAndServe(":8080", handlers.CORS(allowedOrigins, allowedMethods, allowedHeaders)(http.DefaultServeMux))
+	http.ListenAndServe(":8000", corsHandler)
 }
 
 //testing.....
