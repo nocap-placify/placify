@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-
 interface MousePosition {
     x: number;
     y: number;
@@ -91,7 +90,7 @@ export const Landing = () => {
             <div className="absolute inset-0 overflow-hidden">
                 {/* Background animations */}
                 <div className="absolute inset-0 opacity-10">
-                    <div className="absolute h-full w-full animate-wave" 
+                    <div className="absolute h-full w-full animate-wave"
                         style={{
                             backgroundImage: 'linear-gradient(to right, purple 1px, transparent 1px), linear-gradient(to bottom, purple 1px, transparent 1px)',
                             backgroundSize: '50px 50px',
@@ -144,7 +143,7 @@ export const Landing = () => {
                     isVisible ? 'opacity-100' : 'opacity-0'
                 }`}
                 style={{
-                    transform: 'translateY(-50px)', // Move it up a bit
+                    transform: 'translateY(-50px)',
                 }}
             >
                 <h1
@@ -163,8 +162,8 @@ export const Landing = () => {
                         value={inputValue}
                         onChange={handleInputChange}
                         onKeyDown={handleKeyDown}
-                        onFocus={() => setIsInputActive(true)} // Add onFocus handler
-                        onBlur={() => setIsInputActive(false)} // Add onBlur handler
+                        onFocus={() => setIsInputActive(true)}
+                        onBlur={() => setIsInputActive(false)}
                         className="w-full p-4 rounded-full bg-white bg-opacity-20 text-white text-lg pl-5 pr-16 focus:outline-none"
                         placeholder="Enter your SRN"
                         style={{
@@ -202,55 +201,53 @@ export const Landing = () => {
                 {/* Background with blur effect */}
                 <div
                     className={`absolute inset-0 transition-all duration-500 ${
-                        isInputActive ? 'backdrop-blur-lg' : '' // Apply the blur effect on input focus
+                        isInputActive ? 'backdrop-blur-lg' : ''
                     }`}
                     style={{
-                        zIndex: -1, // Ensure this div stays behind the content
-                        backgroundImage: 'url("/path/to/your/background-image.jpg")', // Optional: Add your background
+                        zIndex: -1,
+                        backgroundImage: 'url("/path/to/your/background-image.jpg")',
                         backgroundSize: 'cover',
                     }}
                 />
             </div>
 
+            {/* Footer */}
+            <footer
+                className="absolute bottom-0 w-full text-center text-gray-500 text-sm mb-4"
+                style={{
+                    opacity: 0.7,
+                }}
+            >
+                Made with <span className="text-pink-500">♥️</span> by <a href="https://github.com/nocap-placify" className="underline">nocap-placify</a>.
+            </footer>
+
             <style jsx>{`
                 .typewriter {
                     overflow: hidden;
                     white-space: nowrap;
-                    width: 6ch; /* Exact width for "Welcome" */
+                    width: 6ch;
                     border-right: 3px solid rgba(168, 85, 247, 0.8);
                     animation: typing 1s steps(8, end), blink 0.4s step-end infinite;
                 }
 
                 @keyframes typing {
                     from { width: 0; }
-                    to { width: 7ch; } /* Ends at the last character */
+                    to { width: 7ch; }
                 }
 
                 @keyframes blink {
                     50% { border-color: transparent; }
                 }
 
-                /* Other animations */
                 @keyframes wave {
-                    0% { transform: perspective(1000px) rotateX(45deg) translateY(0); }
-                    100% { transform: perspective(1000px) rotateX(45deg) translateY(50px); }
+                    0% { transform: translateY(0); }
+                    50% { transform: translateY(10px); }
+                    100% { transform: translateY(0); }
                 }
 
-                .animate-wave {
-                    animation: wave 8s infinite linear;
-                }
-                
-                .animate-float {
-                    animation: float 15s infinite ease-in-out;
-                }
-
-                .animate-pulse {
-                    animation: pulse 5s infinite ease-in-out;
-                }
-
-                @keyframes pulse {
-                    0%, 100% { transform: scale(1); opacity: 0.2; }
-                    50% { transform: scale(1.2); opacity: 0.4; }
+                @keyframes float {
+                    0%, 100% { transform: translateY(0); }
+                    50% { transform: translateY(-15px); }
                 }
             `}</style>
         </div>

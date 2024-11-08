@@ -97,11 +97,14 @@ export const Dashboard = () => {
   const [leetcodeStats, setLeetcodeStats] = useState(null);
   const [redButtonResponse, setRedButtonResponse] = useState<string | null>(null);
   const [confirmationModal, setConfirmationModal] = useState(false); // New state for confirmation modal
-  
+
   const [selectedStats, setSelectedStats] = useState('cgpa');
   const [cgpaData, setCgpaData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isResumeOpen, setIsResumeOpen] = useState(false);
+  // State to track footer visibility
+  const [showFooter, setShowFooter] = useState(true);
   // const [showModal, setShowModal] = useState(false);
   // const [modalContent, setModalContent] = useState(null);
 
@@ -109,7 +112,7 @@ export const Dashboard = () => {
     // Log whenever selectedStats is updated
     console.log('Selected Stats changed:', selectedStats);
     window.setSelectedStats = setSelectedStats; // Expose setSelectedStats function to global scope
-  }, [selectedStats]); 
+  }, [selectedStats]);
 
   useEffect(() => {
     setIsVisible(true);
@@ -139,7 +142,7 @@ export const Dashboard = () => {
     img.src = Background;
     img.onload = () => setIsLoading(false);
   }, []);
-  
+
   useEffect(() => {
     const fetchStudentInfo = async () => {
       try {
@@ -244,8 +247,8 @@ const fetchCgpaStats = async (srn) => {
     const response = await axios.get(`http://100.102.21.101:8000/getCGPAStatistics?srn=${srn}`);
     console.log("CGPA Stats Response:", response.data);  // Log the respons
     setCgpaStats(response.data);
-    
-    
+
+
     return response.data;
   } catch (error) {
     console.error('Error fetching CGPA stats:', error);
@@ -295,7 +298,7 @@ const handleStatsCardClick = async (srn) => {
               closeModal();
             }}
           >
-            
+
           </button>
 
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Stats</h2>
@@ -323,8 +326,8 @@ const handleStatsCardClick = async (srn) => {
               <ul className="space-y-2 mb-4">
                 {cgpaLeaderboard.map((entry, index) => (
                   <li key={index} className="text-gray-600">
-                    <span className="font-medium">Name:</span> {entry.name}, 
-                    <span className="font-medium"> CGPA:</span> {entry.cgpa}, 
+                    <span className="font-medium">Name:</span> {entry.name},
+                    <span className="font-medium"> CGPA:</span> {entry.cgpa},
                     <span className="font-medium"> Rank:</span> {entry.rank}
                   </li>
                 ))}
@@ -342,7 +345,7 @@ const handleStatsCardClick = async (srn) => {
               <ul className="space-y-2">
                 {leetcodeLeaderboard.map((entry, index) => (
                   <li key={index} className="text-gray-600">
-                    <span className="font-medium">Name:</span> {entry.name}, 
+                    <span className="font-medium">Name:</span> {entry.name},
                     <span className="font-medium"> Rank:</span> {entry.rank}
                   </li>
                 ))}
@@ -403,7 +406,7 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
           className="absolute top-2 right-2 text-gray-700"
           onClick={() => closeModal()}
         >
-          
+
         </button>
 
         <h2 className="text-2xl font-bold text-gray-800 mb-4">Stats</h2>
@@ -431,8 +434,8 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
             <ul className="space-y-2 mb-4">
               {cgpaLeaderboard.map((entry, index) => (
                 <li key={index} className="text-gray-600">
-                  <span className="font-medium">Name:</span> {entry.name}, 
-                  <span className="font-medium"> CGPA:</span> {entry.cgpa}, 
+                  <span className="font-medium">Name:</span> {entry.name},
+                  <span className="font-medium"> CGPA:</span> {entry.cgpa},
                   <span className="font-medium"> Rank:</span> {entry.rank}
                 </li>
               ))}
@@ -450,7 +453,7 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
             <ul className="space-y-2">
               {leetcodeLeaderboard.map((entry, index) => (
                 <li key={index} className="text-gray-600">
-                  <span className="font-medium">Name:</span> {entry.name}, 
+                  <span className="font-medium">Name:</span> {entry.name},
                   <span className="font-medium"> Rank:</span> {entry.rank}
                 </li>
               ))}
@@ -476,22 +479,22 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
       console.error('SRN is undefined');
       return;
     }
-  
+
     setShowModal(true);
-  
+
     if (type === 'GitHub') {
       setModalContent(
         <div className="flex items-center justify-center p-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
         </div>
       );
-  
+
       const data = await fetchData(srn);
-  
+
       if (data) {
         const githubProfileUrl = data.github_id;
         const githubUsername = githubProfileUrl.split('/').pop();
-  
+
         setModalContent(
           <div className="flex flex-col h-full max-h-[70vh]">
             <div className="p-6 bg-white rounded-t-lg">
@@ -546,13 +549,13 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500"></div>
         </div>
       );
-  
+
       const data = await fetchLeetcodeData(srn);
-  
+
       if (data) {
         const leetcodeProfileUrl = `https://leetcode.com/${data.leetcode_id}`;
         const leetcodeUsername = data.leetcode_id.split('/').pop();
-  
+
         setModalContent(
           <div className="p-6 bg-white rounded-lg shadow-lg">
             <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
@@ -675,44 +678,59 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
   //   setModalContent(null);
   // };
   const handleResumeClick = async () => {
-    setShowModal(true);
+    setIsResumeOpen(prev => !prev);
+    setShowFooter(false); // Show footer depending on modal state
+    setShowModal(true); // Open the modal
     setModalContent(
-      <div className="flex items-center justify-center p-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-      </div>
+        <div className="flex items-center justify-center p-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+        </div>
     );
 
     try {
-      const response = await fetch(`http://100.102.21.101:8000/getResume?srn=${studentSRN}`);
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      setResumeData(url);
+        const response = await fetch(`http://100.102.21.101:8000/getResume?srn=${studentSRN}`);
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        setResumeData(url);
 
-      setModalContent(
-        <div className="p-6 bg-white rounded-lg shadow-lg flex flex-col items-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Resume</h2>
-          <div className="w-full h-[600px] overflow-y-auto">
-            <iframe
-              src={url}
-              frameBorder="0"
-              title="Resume"
-              className="w-full h-full"
-            />
-          </div>
-        </div>
-      );
+        setModalContent(
+            <div className="p-6 bg-white rounded-lg shadow-lg flex flex-col items-center">
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">Resume</h2>
+                <div className="w-full h-[600px] overflow-y-auto">
+                    <iframe
+                        src={url}
+                        frameBorder="0"
+                        title="Resume"
+                        className="w-full h-full"
+                    />
+                </div>
+                <button
+                    onClick={closeModal} // Close modal when button is clicked
+                    className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md"
+                >
+                    Close
+                </button>
+            </div>
+        );
     } catch (error) {
-      console.error("Error fetching resume data:", error);
-      setModalContent(
-        <div className="p-6 bg-white rounded-lg shadow-lg">
-          <h2 className="text-xl font-bold text-red-600">Error loading resume data</h2>
-          <p className="text-gray-600">Please try again later.</p>
-        </div>
-      );
+        console.error("Error fetching resume data:", error);
+        setModalContent(
+            <div className="p-6 bg-white rounded-lg shadow-lg">
+                <h2 className="text-xl font-bold text-red-600">Error loading resume data</h2>
+                <p className="text-gray-600">Please try again later.</p>
+                <button
+                    onClick={closeModal} // Close modal when button is clicked
+                    className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md"
+                >
+                    Close
+                </button>
+            </div>
+        );
     }
-  };
+};
 
   const closeModal = () => {
+    setShowFooter(true);
     setShowModal(false);
     setModalContent(null);
   };
@@ -722,7 +740,7 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
         <div className="absolute inset-0 overflow-hidden">
             {/* Background animations */}
             <div className="absolute inset-0 opacity-10">
-                <div className="absolute h-full w-full animate-wave" 
+                <div className="absolute h-full w-full animate-wave"
                     style={{
                         backgroundImage: 'linear-gradient(to right, purple 1px, transparent 1px), linear-gradient(to bottom, purple 1px, transparent 1px)',
                         backgroundSize: '50px 50px',
@@ -759,7 +777,7 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
             ))}
         </div>
 
-         
+
         <AnimatePresence>
         <motion.div
           className="absolute top-4 right-4"
@@ -820,9 +838,9 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
     </div>
   </motion.div>
         )}
-</AnimatePresence> 
+</AnimatePresence>
 
-   
+
 
         <AnimatePresence>
       {isLoading ? (
@@ -856,17 +874,21 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
           }}
         >
           <main className="flex-grow flex flex-col items-center justify-center w-full max-w-5xl">
-  <div className="text-center mb-16"> {/* Increased the bottom margin here */}
-    <div className="flex items-center justify-center mb-8"> {/* Increased space below the avatar and name */}
+  <div className="text-center mb-8"> {/* Increased the bottom margin here */}
+    <div className="flex items-center justify-center mb-6"> {/* Increased space below the avatar and name */}
       <img className="w-20 h-20 rounded-full mr-4" src="https://avatar.iran.liara.run/public/36" alt="User's avatar" />
       <h1 className="text-4xl font-bold text-amber-100">{studentName}</h1>
     </div>
-    <div className="text-amber-200 max-w-2xl mx-auto mt-8"> {/* Added margin-top to the info section */}
+    <div className="text-amber-200 max-w-2xl mx-auto mt-6"> {/* Added margin-top to the info section */}
       {studentInfo && (
         <div className="text-amber-200 max-w-2xl mx-auto text-center space-y-6"> {/* Increased vertical space between info items */}
           <div className="flex flex-wrap justify-center gap-6"> {/* Added more gap between items */}
             <p className="flex items-center space-x-2">
-              <MdEmail className="mr-0.5" size={21} /> <span>Email:</span> <span>{studentInfo.email}</span>
+            <MdEmail className="mr-0.5" size={21} /> <span>Email:</span>
+  <a href={`mailto:${studentInfo.email}`} className="underline hover:text-blue-700">
+    {studentInfo.email}
+  </a>
+
             </p>
             <p className="flex items-center space-x-2">
               {studentInfo.gender === 'Male' ? (
@@ -896,47 +918,47 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
       )}
     </div>
   </div>
-  <div className="flex flex-col gap-y-4 w-full ">  {/* Parent container with vertical gap */}
-  
+  <div className="flex flex-col gap-y-3.5 w-full ">  {/* Parent container with vertical gap */}
+
   {/* Row 1: GitHub and LeetCode and linkedIN*/}
-  <motion.div 
+  <motion.div
     className="grid grid-cols-3 gap-4 w-full"
     variants={container}
     initial="hidden"
     animate="visible"
   >
-    <motion.div 
+    <motion.div
     variants={item} onClick={() => handleCardClick('GitHub', studentSRN)}>
-      <Card 
-        backgroundColor="rgba(255, 255, 255, 0.6)" 
-        borderColor="rgba(36, 41, 46, 1)" 
-        glowColor="rgba(36, 41, 46, 0.2)" 
-        title="GitHub" 
+      <Card
+        backgroundColor="rgba(255, 255, 255, 0.6)"
+        borderColor="rgba(36, 41, 46, 1)"
+        glowColor="rgba(36, 41, 46, 0.2)"
+        title="GitHub"
         content="GitHub stats and activity "
         icon={<FaGithub size={48} />}
-        
+
       />
     </motion.div>
-    
+
     <motion.div variants={item} onClick={() => handleCardClick('LeetCode', studentSRN)}>
-      <Card 
-        backgroundColor="rgba(255, 255, 255, 0.6)" 
-        borderColor="rgba(255, 161, 22, 1)" 
-        glowColor="rgba(255, 161, 22, 0.2)" 
-        title="LeetCode" 
-        content="LeetCode statistics" 
+      <Card
+        backgroundColor="rgba(255, 255, 255, 0.6)"
+        borderColor="rgba(255, 161, 22, 1)"
+        glowColor="rgba(255, 161, 22, 0.2)"
+        title="LeetCode"
+        content="LeetCode statistics"
         icon={<SiLeetcode size={48} />}
       />
     </motion.div>
 
     <motion.div variants={item} onClick={handleLinkedInClick}>
-      <Card 
-        backgroundColor="#ADD8E6"  
-        borderColor="#005983"  
-        glowColor="rgba(0, 119, 181, 0.2)"  
-        title="LinkedIn" 
+      <Card
+        backgroundColor="#ADD8E6"
+        borderColor="#005983"
+        glowColor="rgba(0, 119, 181, 0.2)"
+        title="LinkedIn"
         content="LinkedIn page "
-        icon={<FaLinkedin size={48} />}  
+        icon={<FaLinkedin size={48} />}
       />
     </motion.div>
 
@@ -945,72 +967,72 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
 
 
   {/* Row 2: Mentor Session and stats */}
-  <motion.div 
+  <motion.div
     className="grid grid-cols-2  gap-x-6 w-full  "
     variants={container}
     initial="hidden"
     animate="visible"
   >
-    <motion.div 
-     className="w-[350px] h-[130px] mx-auto  -mr-1" 
+    <motion.div
+     className="w-[350px] h-[120px] mx-auto  -mr-1"
     variants={item} onClick={() => handleCardClick('MentorSession', studentSRN)}>
-      <Card 
+      <Card
         backgroundColor="#BFEE90"  // Green background for Mentor Session card
-        borderColor="rgba(34, 139, 34, 1)" 
-        glowColor="rgba(34, 139, 34, 0.2)" 
-        title="Mentor Session" 
+        borderColor="rgba(34, 139, 34, 1)"
+        glowColor="rgba(34, 139, 34, 0.2)"
+        title="Mentor Session"
         content="View session details"
-        icon={<FaChalkboardTeacher size={48} />}  
+        icon={<FaChalkboardTeacher size={48} />}
       />
     </motion.div>
 
-    <motion.div 
-    className="w-[350px] h-[130px] mx-auto -ml-1 "  // Set width to 345px and center it
-      variants={item} 
+    <motion.div
+    className="w-[350px] h-[120px] mx-auto -ml-1 "  // Set width to 345px and center it
+      variants={item}
       onClick={() => handleStatsCardClick(studentSRN)}
     >
-      <Card 
+      <Card
         backgroundColor="#FFFFCC"  // Light yellow background for the Stats card
-        borderColor="rgba(218, 165, 32, 1)" 
-        glowColor="rgba(218, 165, 32, 0.2)" 
-        title="Stats" 
-        content="Rank Stats" 
+        borderColor="rgba(218, 165, 32, 1)"
+        glowColor="rgba(218, 165, 32, 0.2)"
+        title="Stats"
+        content="Rank Stats"
         icon={<GiCoinsPile size={48} />}  // Icon for Stats card
       />
     </motion.div>
-    
 
-    
+
+
   </motion.div>
 
 
 
   {/* Row 3: resume */}
-  <motion.div 
+  <motion.div
     className="grid grid-cols-1 gap-4 w-full justify-items-center"
     variants={container}
     initial="hidden"
     animate="visible"
   >
-    <motion.div 
-    className="w-[350px] h-[130px] mx-auto"  // Set width to 345px and center it
-      variants={item} 
+    <motion.div
+    className="w-[350px] h-[115px] mx-auto"  // Set width to 345px and center it
+      variants={item}
       onClick={() => handleResumeClick(studentSRN)}
     >
-      <Card 
+      <Card
         backgroundColor="#FFE4E1"  // Pastel pink background
         borderColor="rgba(255, 192, 203, 1)"  // Pastel pink border color
         glowColor="rgba(255, 192, 203, 0.4)"  // Pastel pink glow color
-        title="Resume" 
-        content="View resume" 
+        title="Resume"
+        content="View resume"
         icon={<FaRegFileAlt size={48} />}  // Icon for Stats card
       />
     </motion.div>
-    
-    
+
+
   </motion.div>
-  
-  
+
+
 </div>
 
 
@@ -1019,7 +1041,7 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
 
 
 
-            {/* <button 
+            {/* <button
               onClick={handleResumeClick}
               className="mt-6 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-300"
             >
@@ -1035,8 +1057,8 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
               className="fixed inset-0 bg-gray-800 bg-opacity-90 flex items-center justify-center p-4"
             >
               <div className="bg-white text-black rounded-lg w-full max-w-4xl shadow-lg relative">
-                <button 
-                  onClick={closeModal} 
+                <button
+                  onClick={closeModal}
                   className="absolute top-2 right-4 text-xl bg-red-500 text-white px-2 py-1 rounded z-50"
                 >
                   ✖
@@ -1046,7 +1068,7 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
                 </div>
               </div>
             </motion.div>
-          )} 
+          )}
         </motion.div>
       )}
     </AnimatePresence>
@@ -1064,11 +1086,23 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
 >
         View Resume
       </button> */}
-      
+
     </motion.div>
   </AnimatePresence>
 
-
+  {showFooter && (
+        <footer
+          className="absolute bottom-0 w-full text-center text-gray-500 text-sm mb-4"
+          style={{
+            opacity: 0.7,
+          }}
+        >
+          Made with <span className="text-pink-500">♥️</span> by{' '}
+          <a href="https://github.com/nocap-placify" className="underline">
+            nocap-placify
+          </a>.
+        </footer>
+      )}
 
 
         <style jsx>{`
