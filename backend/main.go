@@ -1204,7 +1204,7 @@ func main() {
 
 	r.HandleFunc("/deleteStudent", func(w http.ResponseWriter, r *http.Request) {
 		deleteStudent(db, w, r)
-	}).Methods("DELETE")
+	}).Methods("GET")
 
 	r.HandleFunc("/getPublicKey", servePublicKey).Methods("GET")
 
