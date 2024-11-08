@@ -1,8 +1,16 @@
 package main
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/base64"
 	"encoding/csv"
 	"encoding/json"
+	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -17,6 +25,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gorilla/handlers"
 	"github.com/jszwec/csvutil"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -358,12 +367,99 @@ func insertLeetCode(db *gorm.DB, leetcode LeetCode) error {
 	return nil
 }
 
-func GetStudentName(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
-	srn := r.URL.Query().Get("srn")
+//authentication functions
 
+// load rsa priv key for decrypting the aes key
+func loadPrivateKey(path string) (*rsa.PrivateKey, error) {
+	keyBytes, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	block, _ := pem.Decode(keyBytes)
+	if block == nil || block.Type != "RSA PRIVATE KEY" {
+		return nil, errors.New("failed to decode PEM block containing private key")
+	}
+	return x509.ParsePKCS1PrivateKey(block.Bytes)
+}
+
+// decrypt aes key with rsa
+func decryptAESKey(encryptedAESKey string, privateKey *rsa.PrivateKey) ([]byte, error) {
+	aesKey, err := base64.StdEncoding.DecodeString(encryptedAESKey)
+	if err != nil {
+		return nil, err
+	}
+	return rsa.DecryptOAEP(rand.Reader, privateKey, aesKey, nil)
+}
+
+// Decrypts data with AES
+func decryptAES(ciphertext string, aesKey []byte) (string, error) {
+	data, _ := base64.StdEncoding.DecodeString(ciphertext)
+	block, err := aes.NewCipher(aesKey)
+	if err != nil {
+		return "", err
+	}
+	iv := data[:aes.BlockSize]
+	data = data[aes.BlockSize:]
+	stream := cipher.NewCFBDecrypter(block, iv)
+	stream.XORKeyStream(data, data)
+	return string(data), nil
+}
+
+// read hash
+func readPasswordHash() (string, error) {
+	hashFilePath := "testing.hash"
+
+	hashBytes, err := os.ReadFile(hashFilePath)
+	if err != nil {
+		return "", err
+	}
+	return string(hashBytes), nil
+}
+
+func GetStudentName(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+	privateKey, err := loadPrivateKey("/home/suraj/Documents/keys/private_key.pem")
+	if err != nil {
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	encryptedAESKey := r.Header.Get("X-Encrypted-AES-Key")
+	if encryptedAESKey == "" {
+		http.Error(w, "Mising AES key", http.StatusBadRequest)
+		return
+	}
+	aesKey, err := decryptAESKey(encryptedAESKey, privateKey)
+	if err != nil {
+		http.Error(w, "Invalid AES Key", http.StatusBadRequest)
+		return
+	}
+
+	encryptedPass := r.URL.Query().Get("password")
+	if encryptedPass == "" {
+		http.Error(w, "Missing password", http.StatusBadRequest)
+		return
+	}
+
+	password, err := decryptAES(encryptedPass, aesKey)
+	if err != nil {
+		http.Error(w, "Failed to decrypt password", http.StatusBadRequest)
+		return
+	}
+
+	srn := r.URL.Query().Get("srn")
 	var name string
-	// Use GORM to retrieve the student name directly
 	result := db.Table("student").Select("name").Where("student_id = ?", srn).Scan(&name)
+
+	hashedPassword, err := readPasswordHash()
+	if err != nil {
+		http.Error(w, "Student not found", http.StatusNotFound)
+		return
+	}
+	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+	if err != nil {
+		http.Error(w, "Invalid password", http.StatusUnauthorized)
+		return
+	}
 
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
@@ -375,8 +471,6 @@ func GetStudentName(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-
-	// Print the student name to the terminal
 	fmt.Printf("Student Name: %s\n", name)
 
 	// Optional: Return the name in the response
@@ -813,6 +907,10 @@ func deleteStudent(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Student and all associated records deleted successfully"))
 }
 
+func servePublicKey(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "/home/suraj/Documents/keys/public_key.pem")
+}
+
 func main() {
 	start := time.Now()
 	counter := 0
@@ -1119,6 +1217,9 @@ func main() {
 	http.HandleFunc("/deleteStudent", func(w http.ResponseWriter, r *http.Request) {
 		deleteStudent(db, w, r)
 	})
+
+	http.HandleFunc("/getPublicKey", servePublicKey)
+
 	elapsed := time.Since(start)
 	fmt.Printf("\nElapsed Time: %s\n", elapsed)
 

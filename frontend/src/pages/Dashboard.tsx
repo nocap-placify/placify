@@ -772,12 +772,7 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
                         className="w-full h-full"
                     />
                 </div>
-                <button
-                    onClick={closeModal} // Close modal when button is clicked
-                    className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md"
-                >
-                    Close
-                </button>
+                
             </div>
         );
     } catch (error) {
@@ -786,12 +781,6 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
             <div className="p-6 bg-white rounded-lg shadow-lg">
                 <h2 className="text-xl font-bold text-red-600">Error loading resume data</h2>
                 <p className="text-gray-600">Please try again later.</p>
-                <button
-                    onClick={closeModal} // Close modal when button is clicked
-                    className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md"
-                >
-                    Close
-                </button>
             </div>
         );
     }
