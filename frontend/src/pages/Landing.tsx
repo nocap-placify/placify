@@ -46,22 +46,49 @@ export const Landing = () => {
         const value = e.target.value.toUpperCase();
         setInputValue(value);
     };
+    const [inputErrors, setInputErrors] = useState({
+        formName: false,
+        formSrn: false,
+        formsem: false,
+        formGithubLink: false,
+        formLeetcodeLink: false,
+        formMentorName: false,
+        formLinkedinLink: false,
+        formCgpa: false,
+        formAge: false,
+        formPhoneNo: false,
+        formDegree: false,
+        formStream: false,
+        formGender: false,
+        formEmail: false,
+    });
     const handleFormSubmit = () => {
-        console.log("Name:", formName);
-        console.log("Email:", formEmail);
-        console.log("Srn:", formSrn);
-        console.log("Leetcode:", formLeetcodeLink);
-        console.log("Github:", formGithubLink);
-        console.log("stream:", formStream);
-        console.log("Degree:", formDegree);
-        console.log("Gender:", formGender);
-        console.log("sem:", formsem);
-        console.log("linkedin:", formLinkedinLink);
-        console.log("Age:", formAge);
-        console.log("Phone_no:", formPhoneNo);
-        console.log("cgpa:", formCgpa);
-        console.log("Mentor name:", formMentorName);
-        setIsFormOpen(false); // Close the form after submission
+        // Validate each field
+        const errors = {
+            formName: formName === '',
+            formSrn: formSrn === '',
+            formsem: formsem === '',
+            formGithubLink: formGithubLink === '',
+            formLeetcodeLink: formLeetcodeLink === '',
+            formMentorName: formMentorName === '',
+            formLinkedinLink: formLinkedinLink === '',
+            formCgpa: formCgpa === '',
+            formAge: formAge === '',
+            formPhoneNo: formPhoneNo === '',
+            formDegree: formDegree === '',
+            formStream: formStream === '',
+            formGender: formGender === '',
+            formEmail: formEmail === '',
+        };
+
+        setInputErrors(errors);
+
+        const hasErrors = Object.values(errors).some(error => error);
+        if (hasErrors) return;
+
+        console.log("Form submitted successfully");
+
+        setIsFormOpen(false); // Close the form after successful submission
     };
     const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setPasswordValue(e.target.value);
@@ -151,129 +178,48 @@ export const Landing = () => {
             {/* Button to open the form */}
             <button
                 onClick={() => setIsFormOpen(true)}
-                className="absolute top-4 right-4 p-2 bg-blue-500 text-white rounded z-30" // Increase z-index
+                className="absolute top-4 right-4 p-2 bg-blue-500 text-white rounded z-30 hover:bg-blue-600 transition-colors duration-300"
             >
                 Open Form
             </button>
-            
+
             {/* Form Modal */}
             {isFormOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40">
-                    <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full max-h-[80vh] overflow-y-auto"> {/* Add max-h and overflow-y-auto */}
+                    <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full max-h-[80vh] overflow-y-auto">
                         <h2 className="text-lg font-semibold mb-4">Enter Your Details</h2>
-                        <input
-                            type="text"
-                            placeholder="Name"
-                            value={formName}
-                            onChange={(e) => setFormName(e.target.value)}
-                            className="w-full p-2 mb-4 border rounded"
-                        />
-                        <input
-                            type="text"
-                            placeholder="SRN"
-                            value={formSrn}
-                            onChange={(e) => setFormsrn(e.target.value)}
-                            className="w-full p-2 mb-4 border rounded"
-                        />
-                        <input
-                            type="number"
-                            placeholder="CGPA"
-                            value={formCgpa}
-                            onChange={(e) => setFormcgpa(e.target.value)}
-                            className="w-full p-2 mb-4 border rounded"
-                        />
-                        <input
-                            type="number"
-                            placeholder="Semester"
-                            value={formsem}
-                            onChange={(e) => setFormsem(e.target.value)}
-                            className="w-full p-2 mb-4 border rounded"
-                        />
-                        <input
-                            type="number"
-                            placeholder="Age"
-                            value={formAge}
-                            onChange={(e) => setFormage(e.target.value)}
-                            className="w-full p-2 mb-4 border rounded"
-                        />
-                        <input
-                            type="email"
-                            placeholder="Email"
-                            value={formEmail}
-                            onChange={(e) => setFormEmail(e.target.value)}
-                            className="w-full p-2 mb-4 border rounded"
-                        />
-                        <input
-                            type="number"
-                            placeholder="Phone Number"
-                            value={formPhoneNo}
-                            onChange={(e) => setFormPh_no(e.target.value)}
-                            className="w-full p-2 mb-4 border rounded"
-                        />
-                        <input
-                            type="text"
-                            placeholder="Degree"
-                            value={formDegree}
-                            onChange={(e) => setFormDegree(e.target.value)}
-                            className="w-full p-2 mb-4 border rounded"
-                        />
-                        <input
-                            type="text"
-                            placeholder="Stream"
-                            value={formStream}
-                            onChange={(e) => setFormStream(e.target.value)}
-                            className="w-full p-2 mb-4 border rounded"
-                        />
-                        <input
-                            type="text"
-                            placeholder="Gender"
-                            value={formGender}
-                            onChange={(e) => setFormGender(e.target.value)}
-                            className="w-full p-2 mb-4 border rounded"
-                        />
-                        <input
-                            type="url"
-                            placeholder="GitHub Profile Link"
-                            value={formGithubLink}
-                            onChange={(e) => setFormG_profile(e.target.value)}
-                            className="w-full p-2 mb-4 border rounded"
-                        />
-                        <input
-                            type="url"
-                            placeholder="LeetCode Profile Link"
-                            value={formLeetcodeLink}
-                            onChange={(e) => setFormL_profile(e.target.value)}
-                            className="w-full p-2 mb-4 border rounded"
-                        />
-                        <input
-                            type="text"
-                            placeholder="Mentor Name"
-                            value={formMentorName}
-                            onChange={(e) => setFormMentorName(e.target.value)}
-                            className="w-full p-2 mb-4 border rounded"
-                        />
-                        <input
-                            type="url"
-                            placeholder="LinkedIn"
-                            value={formLinkedinLink}
-                            onChange={(e) => setFormLinkedin(e.target.value)}
-                            className="w-full p-2 mb-4 border rounded"
-                        />
+
+                        <input type="text" placeholder="Name" value={formName} onChange={(e) => setFormName(e.target.value)} className={`w-full p-2 mb-4 border rounded ${inputErrors.formName ? 'border-red-500' : ''}`} />
+                        <input type="text" placeholder="SRN" value={formSrn} onChange={(e) => setFormsrn(e.target.value)} className={`w-full p-2 mb-4 border rounded ${inputErrors.formSrn ? 'border-red-500' : ''}`} />
+                        <input type="text" placeholder="Semester" value={formsem} onChange={(e) => setFormsem(e.target.value)} className={`w-full p-2 mb-4 border rounded ${inputErrors.formsem ? 'border-red-500' : ''}`} />
+                        <input type="text" placeholder="GitHub Link" value={formGithubLink} onChange={(e) => setFormG_profile(e.target.value)} className={`w-full p-2 mb-4 border rounded ${inputErrors.formGithubLink ? 'border-red-500' : ''}`} />
+                        <input type="text" placeholder="LeetCode Link" value={formLeetcodeLink} onChange={(e) => setFormL_profile(e.target.value)} className={`w-full p-2 mb-4 border rounded ${inputErrors.formLeetcodeLink ? 'border-red-500' : ''}`} />
+                        <input type="text" placeholder="Mentor Name" value={formMentorName} onChange={(e) => setFormMentorName(e.target.value)} className={`w-full p-2 mb-4 border rounded ${inputErrors.formMentorName ? 'border-red-500' : ''}`} />
+                        <input type="text" placeholder="LinkedIn Link" value={formLinkedinLink} onChange={(e) => setFormLinkedin(e.target.value)} className={`w-full p-2 mb-4 border rounded ${inputErrors.formLinkedinLink ? 'border-red-500' : ''}`} />
+                        <input type="text" placeholder="CGPA" value={formCgpa} onChange={(e) => setFormcgpa(e.target.value)} className={`w-full p-2 mb-4 border rounded ${inputErrors.formCgpa ? 'border-red-500' : ''}`} />
+                        <input type="number" placeholder="Age" value={formAge} onChange={(e) => setFormage(e.target.value)} className={`w-full p-2 mb-4 border rounded ${inputErrors.formAge ? 'border-red-500' : ''}`} />
+                        <input type="text" placeholder="Phone No" value={formPhoneNo} onChange={(e) => setFormPh_no(e.target.value)} className={`w-full p-2 mb-4 border rounded ${inputErrors.formPhoneNo ? 'border-red-500' : ''}`} />
+                        <input type="text" placeholder="Degree" value={formDegree} onChange={(e) => setFormDegree(e.target.value)} className={`w-full p-2 mb-4 border rounded ${inputErrors.formDegree ? 'border-red-500' : ''}`} />
+                        <input type="text" placeholder="Stream" value={formStream} onChange={(e) => setFormStream(e.target.value)} className={`w-full p-2 mb-4 border rounded ${inputErrors.formStream ? 'border-red-500' : ''}`} />
+                        <input type="text" placeholder="Gender" value={formGender} onChange={(e) => setFormGender(e.target.value)} className={`w-full p-2 mb-4 border rounded ${inputErrors.formGender ? 'border-red-500' : ''}`} />
+                        <input type="email" placeholder="Email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} className={`w-full p-2 mb-4 border rounded ${inputErrors.formEmail ? 'border-red-500' : ''}`} />
+
                         <button
                             onClick={handleFormSubmit}
-                            className="w-full p-2 bg-blue-500 text-white rounded"
+                            className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 transition-colors duration-300"
                         >
                             Submit
                         </button>
                         <button
                             onClick={() => setIsFormOpen(false)}
-                            className="w-full p-2 mt-2 bg-gray-300 rounded"
+                            className="w-full bg-red-500 text-white p-2 rounded mt-2 hover:bg-red-600 transition-colors duration-300"
                         >
-                            Cancel
+                            Close
                         </button>
                     </div>
                 </div>
             )}
+
              <div className="absolute inset-0 overflow-hidden">
             {/* Background animations */}
             <div className="absolute inset-0 opacity-10">
