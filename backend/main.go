@@ -802,74 +802,10 @@ func GetCGPAStatistics(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 
 func deleteStudent(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	srn := r.URL.Query().Get("srn")
-	var leetcodeID string
-	var githubID string
 
-	// Start a transaction to ensure atomicity
-	tx := db.Begin()
-	if err := tx.Raw("SELECT leetcode_id FROM leetcode WHERE student_id = ?", srn).Scan(&leetcodeID).Error; err != nil {
-		tx.Rollback()
-		http.Error(w, "Failed to retrieve leetcode_id", http.StatusInternalServerError)
-		return
-
-	}
-	if err := tx.Raw("SELECT github_id FROM github WHERE student_id = ?", srn).Scan(&githubID).Error; err != nil {
-		tx.Rollback()
-		http.Error(w, "Failed to retrieve github_id", http.StatusInternalServerError)
-		return
-	}
-
-	// Check if the student exists before attempting to delete
-	var studentCount int64
-	if err := tx.Raw("SELECT COUNT(*) FROM student WHERE student_id = ?", srn).Scan(&studentCount).Error; err != nil {
-		tx.Rollback()
-		http.Error(w, "Failed to check student existence", http.StatusInternalServerError)
-		return
-	}
-
-	if studentCount == 0 {
-		tx.Rollback()
-		http.Error(w, "Student not found", http.StatusNotFound)
-		return
-	}
-
-	// Delete from tables that do not have ON DELETE CASCADE
-	if err := tx.Exec("DELETE FROM mentor_sessions WHERE student_id = ?", srn).Error; err != nil {
-		tx.Rollback()
-		http.Error(w, "Failed to delete from mentor_sessions", http.StatusInternalServerError)
-		return
-	}
-	if err := tx.Exec("DELETE FROM problems WHERE leetcode_id = ?", leetcodeID).Error; err != nil {
-		tx.Rollback()
-		http.Error(w, "Failed to delete from problems", http.StatusInternalServerError)
-		return
-	}
-	if err := tx.Exec("DELETE FROM leetcode WHERE student_id = ?", srn).Error; err != nil {
-		tx.Rollback()
-		http.Error(w, "Failed to delete from leetcode", http.StatusInternalServerError)
-		return
-	}
-	if err := tx.Exec("DELETE FROM repository WHERE github_id = ?", srn).Error; err != nil {
-		tx.Rollback()
-		http.Error(w, "Failed to delete from repository", http.StatusInternalServerError)
-		return
-	}
-	if err := tx.Exec("DELETE FROM github WHERE student_id = ?", srn).Error; err != nil {
-		tx.Rollback()
-		http.Error(w, "Failed to delete from github", http.StatusInternalServerError)
-		return
-	}
-
-	// Delete the student record itself; this will cascade delete in tables with ON DELETE CASCADE
-	if err := tx.Exec("DELETE FROM student WHERE student_id = ?", srn).Error; err != nil {
-		tx.Rollback()
+	// Delete the student record; this will trigger the deletion of related records
+	if err := db.Exec("DELETE FROM student WHERE student_id = ?", srn).Error; err != nil {
 		http.Error(w, "Failed to delete student", http.StatusInternalServerError)
-		return
-	}
-
-	// Commit transaction
-	if err := tx.Commit().Error; err != nil {
-		http.Error(w, "Failed to commit transaction", http.StatusInternalServerError)
 		return
 	}
 
