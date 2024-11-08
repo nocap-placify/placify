@@ -84,51 +84,45 @@ export const Landing = () => {
 
     return (
         <div className="relative min-h-screen overflow-hidden bg-black">
-            <div className="absolute inset-0 overflow-hidden">
-        
-
-        {/* Mesh grid */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute h-full w-full animate-wave" 
-            style={{
-              backgroundImage: 'linear-gradient(to right, purple 1px, transparent 1px), linear-gradient(to bottom, purple 1px, transparent 1px)',
-              backgroundSize: '50px 50px',
-            }}
-          />
+        <div className="absolute inset-0 overflow-hidden">
+            {/* Background animations */}
+            <div className="absolute inset-0 opacity-10">
+                <div className="absolute h-full w-full animate-wave"
+                    style={{
+                        backgroundImage: 'linear-gradient(to right, purple 1px, transparent 1px), linear-gradient(to bottom, purple 1px, transparent 1px)',
+                        backgroundSize: '50px 50px',
+                    }}
+                />
+            </div>
+            {[...Array(5)].map((_, i) => (
+                <div
+                    key={i}
+                    className="absolute rounded-full opacity-30 blur-xl animate-float"
+                    style={{
+                        width: `${Math.random() * 300 + 100}px`,
+                        height: `${Math.random() * 300 + 100}px`,
+                        background: 'radial-gradient(circle, rgba(168, 85, 247, 0.4) 0%, rgba(168, 85, 247, 0) 70%)',
+                        left: `${Math.random() * 100}%`,
+                        top: `${Math.random() * 100}%`,
+                        animationDelay: `${Math.random() * 5}s`,
+                    }}
+                />
+            ))}
+            {[...Array(10)].map((_, i) => (
+                <div
+                    key={i}
+                    className="absolute rounded-full opacity-20 animate-pulse"
+                    style={{
+                        width: `${Math.random() * 300 + 100}px`,
+                        height: `${Math.random() * 300 + 100}px`,
+                        background: 'radial-gradient(circle, rgba(168, 85, 247, 0.3) 0%, rgba(168, 85, 247, 0) 70%)',
+                        left: `${Math.random() * 100}%`,
+                        top: `${Math.random() * 100}%`,
+                        animationDelay: `${Math.random() * 5}s`,
+                    }}
+                />
+            ))}
         </div>
-
-        {/* Glowing orbs */}
-        {[...Array(5)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute rounded-full opacity-30 blur-xl animate-float"
-            style={{
-              width: `${Math.random() * 300 + 100}px`,
-              height: `${Math.random() * 300 + 100}px`,
-              background: 'radial-gradient(circle, rgba(168, 85, 247, 0.4) 0%, rgba(168, 85, 247, 0) 70%)',
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 5}s`,
-            }}
-          />
-        ))}
-
-        {/* Pulsing circles */}
-        {[...Array(10)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute rounded-full opacity-20 animate-pulse"
-            style={{
-              width: `${Math.random() * 300 + 100}px`,
-              height: `${Math.random() * 300 + 100}px`,
-              background: 'radial-gradient(circle, rgba(168, 85, 247, 0.3) 0%, rgba(168, 85, 247, 0) 70%)',
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 5}s`,
-            }}
-          />
-        ))}
-      </div>
 
             <div className="pointer-events-none fixed transition-transform duration-100 ease-out"
                 style={{
@@ -252,15 +246,9 @@ export const Landing = () => {
     }
 
     @keyframes pulse {
-        0%, 100% {
-            transform: scale(1);
-            opacity: 0.2;
-        }
-        50% {
-            transform: scale(1.2);
-            opacity: 0.4;
-        }
-    }
+                0%, 100% { transform: scale(1); opacity: 0.2; }
+                50% { transform: scale(1.2); opacity: 0.4; }
+            }
 
     @keyframes glow {
         0% {
