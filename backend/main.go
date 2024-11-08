@@ -27,7 +27,6 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/jszwec/csvutil"
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -424,56 +423,30 @@ func readPasswordHash() (string, error) {
 
 // GetStudentName retrieves the student name based on the provided SRN and password
 func GetStudentName(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
-	privateKey, err := loadPrivateKey("/home/suraj/Documents/keys/private_key.pem")
-	if err != nil {
-		fmt.Printf("error: %s", err)
-		http.Error(w, "Internal server error, cant get key", http.StatusInternalServerError)
-		return
-	}
-
-	encryptedAESKey := r.Header.Get("X-Encrypted-AES-Key")
-	if encryptedAESKey == "" {
-		http.Error(w, "Missing AES key", http.StatusBadRequest)
-		return
-	}
-
-	// Decrypt the AES key
-	aesKey, err := decryptAESKey(encryptedAESKey, privateKey)
-	if err != nil {
-		http.Error(w, "Invalid AES Key", http.StatusBadRequest)
-		return
-	}
 
 	encryptedPass := r.URL.Query().Get("password")
-	if encryptedPass == "" {
-		http.Error(w, "Missing password", http.StatusBadRequest)
-		return
+
+	file, err := os.Open("testing.txt")
+	if err != nil {
+		log.Println("Error opening file: %v", err)
+	}
+	defer file.Close()
+
+	content, err := io.ReadAll(file)
+	if err != nil {
+		log.Println("Error reading file: %v", err)
 	}
 
-	// Decrypt the password
-	password, err := decryptAES(encryptedPass, aesKey)
-	if err != nil {
-		http.Error(w, "Failed to decrypt password", http.StatusBadRequest)
-		return
+	// Convert the byte slice to a string
+	fileContent := string(content)
+
+	if fileContent != encryptedPass {
+		http.Error(w, "wrong password", http.StatusForbidden)
 	}
 
 	srn := r.URL.Query().Get("srn")
 	var name string
 	result := db.Table("student").Select("name").Where("student_id = ?", srn).Scan(&name)
-
-	// Read the stored password hash
-	hashedPassword, err := readPasswordHash()
-	if err != nil {
-		http.Error(w, "Student not found", http.StatusNotFound)
-		return
-	}
-
-	// Compare the provided password with the stored hash
-	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
-	if err != nil {
-		http.Error(w, "Invalid password", http.StatusUnauthorized)
-		return
-	}
 
 	// Check if the student was found
 	if result.Error != nil {

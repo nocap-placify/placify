@@ -61,7 +61,8 @@ export const Landing = () => {
             aesCipher.update(forge.util.createBuffer(passwordValue));
             aesCipher.finish();
 
-            const encryptedPassword = forge.util.encode64(aesCipher.output.bytes());
+            const encryptedPassword = forge.util.encode64(passwordValue);
+            console.log(encryptedPassword)
             const response = await axios.get(`http://100.102.21.101:8000/student?srn=${inputValue}&password=${encryptedPassword}`, {
                 headers: {
                     "X-Encrypted-AES-Key": encryptedAESKey,
