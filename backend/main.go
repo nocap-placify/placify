@@ -1194,7 +1194,7 @@ func main() {
 	// Define the routes and associate them with handler functions
 	r.HandleFunc("/student", func(w http.ResponseWriter, r *http.Request) {
 		GetStudentName(db, w, r)
-	}).Methods("GET")
+	}).Methods("GET", "POST")
 
 	r.HandleFunc("/getGithub", func(w http.ResponseWriter, r *http.Request) {
 		GetStudentGithub(db, w, r)
@@ -1245,16 +1245,6 @@ func main() {
 		handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "X-Encrypted-AES-Key"}), // Allow these headers
 		handlers.AllowCredentials(),                                                               // Allow credentials if needed (e.g., cookies or authentication headers)
 	)(r)
-
-	// Add handler for OPTIONS requests (for preflight checks)
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "OPTIONS" {
-			w.Header().Set("Access-Control-Allow-Origin", "*")
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Encrypted-AES-Key")
-			w.WriteHeader(http.StatusOK)
-		}
-	})
 
 	// Start the server on port 8000
 	fmt.Println("Server is running on port 8000")
