@@ -34,7 +34,7 @@ export const Landing = () => {
     };
 
     const getEncryptedAESKey = async (): Promise<{ encryptedAESKey: string, aesKey: Uint8Array }> => {
-        const response = await fetch("http://100.102.21.101/getPublicKey");
+        const response = await fetch("http://100.102.21.101:8000/getPublicKey");
         const publicKeyPem = await response.text();
 
         const rsaPublicKey = forge.pki.publicKeyFromPem(publicKeyPem);
@@ -62,7 +62,7 @@ export const Landing = () => {
             aesCipher.finish();
 
             const encryptedPassword = forge.util.encode64(aesCipher.output.bytes());
-            const response = await axios.get(`http://100.102.21.101/student?srn=${inputValue}&password=${encryptedPassword}`, {
+            const response = await axios.get(`http://100.102.21.101:8000/student?srn=${inputValue}&password=${encryptedPassword}`, {
                 headers: {
                     "X-Encrypted-AES-Key": encryptedAESKey,
                     "X-IV": forge.util.encode64(iv), // Include IV in the header for decryption later

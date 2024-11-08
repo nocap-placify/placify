@@ -25,6 +25,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
 	"github.com/jszwec/csvutil"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/postgres"
@@ -1188,57 +1189,63 @@ func main() {
 	fmt.Printf("!!!done setting up database!!!")
 
 	// HTTP handlers remain the same
-	http.HandleFunc("/student", func(w http.ResponseWriter, r *http.Request) {
+	r := mux.NewRouter()
+
+	// Define the routes and associate them with handler functions
+	r.HandleFunc("/student", func(w http.ResponseWriter, r *http.Request) {
 		GetStudentName(db, w, r)
-	})
+	}).Methods("GET")
 
-	http.HandleFunc("/getGithub", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/getGithub", func(w http.ResponseWriter, r *http.Request) {
 		GetStudentGithub(db, w, r)
-	})
+	}).Methods("GET")
 
-	http.HandleFunc("/getLeetcode", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/getLeetcode", func(w http.ResponseWriter, r *http.Request) {
 		GetLeetcode(db, w, r)
-	})
+	}).Methods("GET")
 
-	http.HandleFunc("/getResume", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/getResume", func(w http.ResponseWriter, r *http.Request) {
 		GetResume(db, w, r)
-	})
+	}).Methods("GET")
 
-	http.HandleFunc("/getMentorSessions", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/getMentorSessions", func(w http.ResponseWriter, r *http.Request) {
 		GetMentorSessions(db, w, r)
-	})
+	}).Methods("GET")
 
-	http.HandleFunc("/getLinkedin", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/getLinkedin", func(w http.ResponseWriter, r *http.Request) {
 		GetLinkedin(db, w, r)
-	})
+	}).Methods("GET")
 
-	http.HandleFunc("/getInfo", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/getInfo", func(w http.ResponseWriter, r *http.Request) {
 		GetInfo(db, w, r)
-	})
+	}).Methods("GET")
 
-	http.HandleFunc("/getLeetCodeStatistics", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/getLeetCodeStatistics", func(w http.ResponseWriter, r *http.Request) {
 		GetLeetCodeStatistics(db, w, r)
-	})
+	}).Methods("GET")
 
-	http.HandleFunc("/getCGPAStatistics", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/getCGPAStatistics", func(w http.ResponseWriter, r *http.Request) {
 		GetCGPAStatistics(db, w, r)
-	})
+	}).Methods("GET")
 
-	http.HandleFunc("/deleteStudent", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/deleteStudent", func(w http.ResponseWriter, r *http.Request) {
 		deleteStudent(db, w, r)
-	})
+	}).Methods("DELETE")
 
-	http.HandleFunc("/getPublicKey", servePublicKey)
+	r.HandleFunc("/getPublicKey", servePublicKey).Methods("GET")
 
+	// Calculate elapsed time
 	elapsed := time.Since(start)
 	fmt.Printf("\nElapsed Time: %s\n", elapsed)
 
+	// Setup CORS with allowed methods, origins, and headers
 	corsHandler := handlers.CORS(
 		handlers.AllowedOrigins([]string{"*"}),
 		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
 		handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "X-Encrypted-AES-Key"}),
-	)(http.DefaultServeMux)
+	)(r)
 
+	// Start the server on port 8000
 	fmt.Println("Server is running on port 8000")
 	http.ListenAndServe(":8000", corsHandler)
 }
