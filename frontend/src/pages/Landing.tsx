@@ -16,30 +16,58 @@ export const Landing = () => {
     const [passwordValue, setPasswordValue] = useState('');
     const [isInputValid, setIsInputValid] = useState(true);
     const [showShakeAnimation, setShowShakeAnimation] = useState(false);
+    const [showWrongAnimation, setShowWrongAnimation] = useState(false);
     const [scale, setScale] = useState(1);
     const [studentName, setStudentName] = useState('');
     const navigate = useNavigate();
 
     const inputRef = useRef<HTMLInputElement>(null);
     const passwordRef = useRef<HTMLInputElement>(null);
-
     const validateInput = (value: string) => /^PES[1-2]UG[0-9]{2}(CS|EC)[0-9]{3}$/.test(value);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value.toUpperCase();
         setInputValue(value);
     };
-
     const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setPasswordValue(e.target.value);
     };
 
+    const getEncryptedAESKey = async (): Promise<{ encryptedAESKey: string, aesKey: Uint8Array }> => {
+        const response = await fetch("http://100.102.21.101/getPublicKey");
+        const publicKeyPem = await response.text();
+
+        const rsaPublicKey = forge.pki.publicKeyFromPem(publicKeyPem);
+        const aesKey = forge.random.getBytesSync(16); // 128-bit AES key
+
+        const encryptedAESKey = rsaPublicKey.encrypt(aesKey, "RSA-OAEP");
+        return {
+            encryptedAESKey: forge.util.encode64(encryptedAESKey),
+            aesKey: forge.util.createBuffer(aesKey).toHex(),
+        };
+    };
+
     const handleSubmit = async () => {
-        if (validateInput(inputValue) && passwordValue.trim() !== '') {
+        if (validateInput(inputValue)) {
             setIsInputValid(true);
             setShowShakeAnimation(false);
             try {
-                const response = await axios.get(`http://100.102.21.101:8000/student?srn=${inputValue}`);
+                const { encryptedAESKey, aesKey } = await getEncryptedAESKey();
+
+            // AES encrypt the password
+            const aesCipher = forge.cipher.createCipher("AES-CFB", aesKey);
+            const iv = forge.random.getBytesSync(16);
+            aesCipher.start({ iv });
+            aesCipher.update(forge.util.createBuffer(passwordValue));
+            aesCipher.finish();
+
+            const encryptedPassword = forge.util.encode64(aesCipher.output.bytes());
+            const response = await axios.get(`http://100.102.21.101/student?srn=${inputValue}&password=${encryptedPassword}`, {
+                headers: {
+                    "X-Encrypted-AES-Key": encryptedAESKey,
+                    "X-IV": forge.util.encode64(iv), // Include IV in the header for decryption later
+                }
+            });
                 const studentName = response.data;
                 if (!studentName) {
                     setShowShakeAnimation(true);
@@ -88,49 +116,45 @@ export const Landing = () => {
 
     return (
         <div className="relative min-h-screen overflow-hidden bg-black">
-            <div className="absolute inset-0 overflow-hidden">
-                {/* Mesh grid */}
-                <div className="absolute inset-0 opacity-10">
-                    <div className="absolute h-full w-full animate-wave" 
-                        style={{
-                            backgroundImage: 'linear-gradient(to right, purple 1px, transparent 1px), linear-gradient(to bottom, purple 1px, transparent 1px)',
-                            backgroundSize: '50px 50px',
-                        }}
-                    />
-                </div>
-
-                {/* Glowing orbs */}
-                {[...Array(5)].map((_, i) => (
-                    <div
-                        key={i}
-                        className="absolute rounded-full opacity-30 blur-xl animate-float"
-                        style={{
-                            width: `${Math.random() * 300 + 100}px`,
-                            height: `${Math.random() * 300 + 100}px`,
-                            background: 'radial-gradient(circle, rgba(168, 85, 247, 0.4) 0%, rgba(168, 85, 247, 0) 70%)',
-                            left: `${Math.random() * 100}%`,
-                            top: `${Math.random() * 100}%`,
-                            animationDelay: `${Math.random() * 5}s`,
-                        }}
-                    />
-                ))}
-
-                {/* Pulsing circles */}
-                {[...Array(10)].map((_, i) => (
-                    <div
-                        key={i}
-                        className="absolute rounded-full opacity-20 animate-pulse"
-                        style={{
-                            width: `${Math.random() * 300 + 100}px`,
-                            height: `${Math.random() * 300 + 100}px`,
-                            background: 'radial-gradient(circle, rgba(168, 85, 247, 0.3) 0%, rgba(168, 85, 247, 0) 70%)',
-                            left: `${Math.random() * 100}%`,
-                            top: `${Math.random() * 100}%`,
-                            animationDelay: `${Math.random() * 5}s`,
-                        }}
-                    />
-                ))}
+             <div className="absolute inset-0 overflow-hidden">
+            {/* Background animations */}
+            <div className="absolute inset-0 opacity-10">
+                <div className="absolute h-full w-full animate-wave"
+                    style={{
+                        backgroundImage: 'linear-gradient(to right, purple 1px, transparent 1px), linear-gradient(to bottom, purple 1px, transparent 1px)',
+                        backgroundSize: '50px 50px',
+                    }}
+                />
             </div>
+            {[...Array(5)].map((_, i) => (
+                <div
+                    key={i}
+                    className="absolute rounded-full opacity-30 blur-xl animate-float"
+                    style={{
+                        width: `${Math.random() * 300 + 100}px`,
+                        height: `${Math.random() * 300 + 100}px`,
+                        background: 'radial-gradient(circle, rgba(168, 85, 247, 0.4) 0%, rgba(168, 85, 247, 0) 70%)',
+                        left: `${Math.random() * 100}%`,
+                        top: `${Math.random() * 100}%`,
+                        animationDelay: `${Math.random() * 5}s`,
+                    }}
+                />
+            ))}
+            {[...Array(10)].map((_, i) => (
+                <div
+                    key={i}
+                    className="absolute rounded-full opacity-20 animate-pulse"
+                    style={{
+                        width: `${Math.random() * 300 + 100}px`,
+                        height: `${Math.random() * 300 + 100}px`,
+                        background: 'radial-gradient(circle, rgba(168, 85, 247, 0.3) 0%, rgba(168, 85, 247, 0) 70%)',
+                        left: `${Math.random() * 100}%`,
+                        top: `${Math.random() * 100}%`,
+                        animationDelay: `${Math.random() * 5}s`,
+                    }}
+                />
+            ))}
+        </div>
 
             <div className={`absolute inset-0 ${isInputActive ? 'backdrop-blur-lg' : ''}`}>
                 <div
@@ -154,30 +178,26 @@ export const Landing = () => {
                         }}
                     >Placify</h1>
 
-                {/* Input with Arrow Button */}
-                <div className="mt-8 relative w-80">
-                    <input
-                        type="text"
-                        ref={inputRef}
-                        value={inputValue}
-                        onChange={handleInputChange}
-                        onKeyDown={handleKeyDown}
-                        onFocus={() => setIsInputActive(true)}
-                        onBlur={() => setIsInputActive(false)}
-                        className={`w-full p-4 rounded-full bg-white bg-opacity-20 text-white text-lg pl-5 pr-16 focus:outline-none ${
-                            showShakeAnimation ? 'shake' : ''
-                        }`}
-                        placeholder="Enter your SRN"
-                        style={{
-                            border: showShakeAnimation || !isInputValid ? '1px solid red' : '1px solid rgba(255, 255, 255, 0.5)',
-                            transition: 'border-color 0.3s ease',
-                        }}
-                    />
-                    
-                </div>
-
-                {/* Password Input */}
-                <div className="mt-4 relative w-80">
+                    {/* Input with Arrow Button */}
+                    <div className="mt-8 relative w-80">
+                        <input
+                            type="text"
+                            ref={inputRef}
+                            value={inputValue}
+                            onChange={handleInputChange}
+                            onKeyDown={handleKeyDown}
+                            onFocus={() => setIsInputActive(true)}
+                            onBlur={() => setIsInputActive(false)}
+                            className={`w-full p-4 rounded-full bg-white bg-opacity-20 text-white text-lg pl-5 pr-16 focus:outline-none ${showShakeAnimation ? 'shake' : ''}`}
+                            placeholder="Enter your SRN"
+                            style={{
+                                border: showShakeAnimation || !isInputValid ? '1px solid red' : '1px solid rgba(255, 255, 255, 0.5)',
+                                transition: 'border-color 0.3s ease',
+                            }}
+                        />
+                       
+                    </div>
+                    <div className="mt-4 relative w-80">
                     <input
                         type="password"
                         ref={passwordRef}
@@ -206,6 +226,132 @@ export const Landing = () => {
                         </svg>
                     </button>
                 </div>
+                </div>
+                <style jsx>{`
+    .shake {
+        animation: shake 0.4s ease;
+    }
+    @keyframes wave {
+        0% {
+            background-position: 0 0;
+        }
+        50% {
+            background-position: 25px 25px;
+        }
+        100% {
+            background-position: 0 0;
+        }
+    }
+
+    .animate-wave {
+        animation: wave 8s infinite linear;
+    }
+
+    @keyframes slide {
+        0% {
+            transform: translateX(-100%) rotate(-45deg);
+        }
+        100% {
+            transform: translateX(100%) rotate(-45deg);
+        }
+    }
+
+    @keyframes float {
+        0%, 100% {
+            transform: translate(0, 0);
+        }
+        50% {
+            transform: translate(30px, -30px);
+        }
+    }
+
+    @keyframes pulse {
+                0%, 100% { transform: scale(1); opacity: 0.2; }
+                50% { transform: scale(1.2); opacity: 0.4; }
+            }
+
+    @keyframes glow {
+        0% {
+            text-shadow: 0 0 20px rgba(168, 85, 247, 0);
+        }
+        50% {
+            text-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
+        }
+        100% {
+            text-shadow: 0 0 20px rgba(168, 85, 247, 0);
+        }
+    }
+
+    .animate-glow {
+        animation: glow 3s infinite;
+    }
+
+    .animate-slideIn {
+        animation: slideIn 1s forwards;
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    @keyframes slideIn {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .animate-fadeIn {
+        animation: fadeIn 1s forwards;
+        opacity: 0;
+    }
+
+    @keyframes fadeIn {
+        to {
+            opacity: 1;
+        }
+    }
+
+    @keyframes shake {
+        0% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        50% { transform: translateX(5px); }
+        75% { transform: translateX(-5px); }
+        100% { transform: translateX(0); }
+    }
+
+    .typewriter {
+        overflow: hidden;
+        white-space: nowrap;
+        width: 6ch;
+        border-right: 3px solid rgba(168, 85, 247, 0.8);
+        animation: typing 1s steps(8, end), blink 0.4s step-end infinite;
+    }
+
+    @keyframes typing {
+        from { width: 0; }
+        to { width: 7ch; }
+    }
+
+    @keyframes blink {
+        50% { border-color: transparent; }
+    }
+
+    .animate-float {
+        animation: float 15s infinite ease-in-out;
+    }
+
+    .animate-pulse {
+        animation: pulse 5s infinite ease-in-out;
+    }
+`}</style>
+                {/* Footer */}
+                <footer
+                    className="absolute bottom-0 w-full text-center text-gray-500 text-sm mb-4"
+                    style={{
+                        opacity: 0.7,
+                    }}
+                >
+                    Made with <span className="text-pink-500">🩵</span> by <a href="https://github.com/nocap-placify" className="underline">nocap-placify</a>.
+                </footer>
             </div>
         </div>
     );
