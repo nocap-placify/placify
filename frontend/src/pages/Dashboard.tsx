@@ -1097,7 +1097,7 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
             opacity: 0.7,
           }}
         >
-          Made with <span className="text-pink-500">♥️</span> by{' '}
+          Made with <span className="text-pink-500">🩵</span> by{' '}
           <a href="https://github.com/nocap-placify" className="underline">
             nocap-placify
           </a>.
