@@ -64,10 +64,6 @@ export const Landing = () => {
             const encryptedPassword = forge.util.encode64(passwordValue);
             console.log(encryptedPassword)
             const response = await axios.get(`http://100.102.21.101:8000/student?srn=${inputValue}&password=${encryptedPassword}`, {
-                headers: {
-                    "X-Encrypted-AES-Key": encryptedAESKey,
-                    "X-IV": forge.util.encode64(iv), // Include IV in the header for decryption later
-                }
             });
                 const studentName = response.data;
                 if (!studentName) {
