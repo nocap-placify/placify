@@ -136,14 +136,11 @@ export const Dashboard = () => {
     };
   }, []);
 
-
-
   useEffect(() => {
     const img = new Image();
     img.src = Background;
     img.onload = () => setIsLoading(false);
   }, []);
-
   useEffect(() => {
     const fetchStudentInfo = async () => {
       try {
@@ -163,7 +160,6 @@ export const Dashboard = () => {
 
     fetchStudentInfo();
   }, [studentSRN]);
-
   const handleLinkedInClick = () => {
     if (linkedinUrl?.linkedin) {
       window.open(linkedinUrl.linkedin, "_blank");
@@ -219,7 +215,8 @@ export const Dashboard = () => {
     try {
       const response = await axios.get(`http://100.102.21.101:8000/deleteStudent?srn=${studentSRN}`);
       if (response.status === 200) {
-        setRedButtonResponse("Student deleted successfully!");
+        console.log("Student deleted successfully!");
+      
         setTimeout(() => navigate("/"), 2000); // Redirect to landing page after 2 seconds
       } else {
         setRedButtonResponse("Failed to delete student.");
@@ -859,13 +856,14 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
           style={{ zIndex: 1000 }}
         >
           <button
-            onClick={handleRedButtonClick}  // Open confirmation modal on click
-            className="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition duration-300"
+            onClick={handleRedButtonClick}
+            className="bg-red-500 hover:bg-red-600 transition duration-300 rounded-full p-3"
             style={{ position: 'relative', zIndex: 1000 }}
           >
-            Delete
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
           </button>
-
 
           {/* Display the response or loading message */}
           {redButtonResponse && (
@@ -882,35 +880,34 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
 
         {/* Confirmation Modal */}
         {confirmationModal && (
-
-  <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    className="fixed inset-0 bg-gray-800 bg-opacity-90 flex items-center justify-center p-4"
-    style={{ zIndex: 1050 }} // Set a high z-index for the modal
-  >
-    <div className="bg-white text-black rounded-lg w-full max-w-md p-6 shadow-lg relative">
-      <h2 className="text-xl font-bold mb-4">Confirm Delete</h2>
-      <p>Are you sure you want to delete this student?</p>
-      <div className="flex justify-end gap-4 mt-6">
-        <button
-          onClick={confirmDelete}
-          className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
-        >
-          Yes
-        </button>
-        <button
-          onClick={closeConfirmationModal}
-          className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
-        >
-          No
-        </button>
-      </div>
-    </div>
-  </motion.div>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-gray-800 bg-opacity-90 flex items-center justify-center p-4"
+            style={{ zIndex: 1050 }}
+          >
+            <div className="bg-white text-black rounded-lg w-full max-w-md p-6 shadow-lg relative">
+              <h2 className="text-xl font-bold mb-4">Confirm Delete</h2>
+              <p>Are you sure you want to delete this student?</p>
+              <div className="flex justify-end gap-4 mt-6">
+                <button
+                  onClick={confirmDelete}
+                  className="px-4 py-2 bg-red-500 text-white rounded-full hover:bg-red-600"
+                >
+                  Yes
+                </button>
+                <button
+                  onClick={closeConfirmationModal}
+                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-full hover:bg-gray-400"
+                >
+                  No
+                </button>
+              </div>
+            </div>
+          </motion.div>
         )}
-</AnimatePresence>
+      </AnimatePresence>
 
 
 
