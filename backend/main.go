@@ -5,6 +5,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/csv"
@@ -382,18 +383,22 @@ func loadPrivateKey(path string) (*rsa.PrivateKey, error) {
 	return x509.ParsePKCS1PrivateKey(block.Bytes)
 }
 
-// decrypt aes key with rsa
+// decryptAESKey decrypts the AES key using the provided RSA private key
 func decryptAESKey(encryptedAESKey string, privateKey *rsa.PrivateKey) ([]byte, error) {
 	aesKey, err := base64.StdEncoding.DecodeString(encryptedAESKey)
 	if err != nil {
 		return nil, err
 	}
-	return rsa.DecryptOAEP(rand.Reader, privateKey, aesKey, nil)
+	// Decrypt using RSA with OAEP (requires sha256 as the hash function)
+	return rsa.DecryptOAEP(sha256.New(), rand.Reader, privateKey, aesKey, nil)
 }
 
-// Decrypts data with AES
+// decryptAES decrypts the given AES-encrypted string using the provided AES key
 func decryptAES(ciphertext string, aesKey []byte) (string, error) {
-	data, _ := base64.StdEncoding.DecodeString(ciphertext)
+	data, err := base64.StdEncoding.DecodeString(ciphertext)
+	if err != nil {
+		return "", err
+	}
 	block, err := aes.NewCipher(aesKey)
 	if err != nil {
 		return "", err
@@ -405,7 +410,7 @@ func decryptAES(ciphertext string, aesKey []byte) (string, error) {
 	return string(data), nil
 }
 
-// read hash
+// readPasswordHash reads the password hash from the file
 func readPasswordHash() (string, error) {
 	hashFilePath := "testing.hash"
 
@@ -416,18 +421,21 @@ func readPasswordHash() (string, error) {
 	return string(hashBytes), nil
 }
 
+// GetStudentName retrieves the student name based on the provided SRN and password
 func GetStudentName(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	privateKey, err := loadPrivateKey("/home/suraj/Documents/keys/private_key.pem")
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	encryptedAESKey := r.Header.Get("X-Encrypted-AES-Key")
 	if encryptedAESKey == "" {
-		http.Error(w, "Mising AES key", http.StatusBadRequest)
+		http.Error(w, "Missing AES key", http.StatusBadRequest)
 		return
 	}
+
+	// Decrypt the AES key
 	aesKey, err := decryptAESKey(encryptedAESKey, privateKey)
 	if err != nil {
 		http.Error(w, "Invalid AES Key", http.StatusBadRequest)
@@ -440,6 +448,7 @@ func GetStudentName(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Decrypt the password
 	password, err := decryptAES(encryptedPass, aesKey)
 	if err != nil {
 		http.Error(w, "Failed to decrypt password", http.StatusBadRequest)
@@ -450,31 +459,32 @@ func GetStudentName(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	var name string
 	result := db.Table("student").Select("name").Where("student_id = ?", srn).Scan(&name)
 
+	// Read the stored password hash
 	hashedPassword, err := readPasswordHash()
 	if err != nil {
 		http.Error(w, "Student not found", http.StatusNotFound)
 		return
 	}
+
+	// Compare the provided password with the stored hash
 	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 	if err != nil {
 		http.Error(w, "Invalid password", http.StatusUnauthorized)
 		return
 	}
 
+	// Check if the student was found
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
-			fmt.Println("Student not found")
 			http.Error(w, "Student not found", http.StatusNotFound)
 		} else {
-			fmt.Printf("Couldn't retrieve record: %v\n", result.Error)
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 		}
 		return
 	}
 	fmt.Printf("Student Name: %s\n", name)
-
-	// Optional: Return the name in the response
-	fmt.Fprintf(w, name)
+	// Return the student's name in the response
+	fmt.Fprintf(w, "Student Name: %s\n", name)
 }
 
 func GetStudentGithub(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
