@@ -1240,10 +1240,21 @@ func main() {
 
 	// Setup CORS with allowed methods, origins, and headers
 	corsHandler := handlers.CORS(
-		handlers.AllowedOrigins([]string{"*"}),
-		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
-		handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "X-Encrypted-AES-Key"}),
+		handlers.AllowedOrigins([]string{"*"}),                                                    // Allow all origins
+		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),              // Allow these HTTP methods
+		handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "X-Encrypted-AES-Key"}), // Allow these headers
+		handlers.AllowCredentials(),                                                               // Allow credentials if needed (e.g., cookies or authentication headers)
 	)(r)
+
+	// Add handler for OPTIONS requests (for preflight checks)
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "OPTIONS" {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Encrypted-AES-Key")
+			w.WriteHeader(http.StatusOK)
+		}
+	})
 
 	// Start the server on port 8000
 	fmt.Println("Server is running on port 8000")
