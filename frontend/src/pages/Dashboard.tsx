@@ -4,6 +4,7 @@ import { useLocation ,useNavigate} from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from "../components/card";
 import Background from '../assets/backgroundblue.png';
+import trash from '../assets/garbag.png';
 import { FaGithub } from 'react-icons/fa';
 import { SiLeetcode } from 'react-icons/si';
 import { FaChalkboardTeacher } from 'react-icons/fa';
@@ -270,12 +271,9 @@ const fetchLeetcodeStats = async (srn) => {
 };
 
 const [modalText, setModalText] = useState("");
-
 const handleStatsCardClick = async (srn) => {
-  // Show the modal with a loading spinner first
-  openModalWithLoading(); // Open modal with loading spinner
+  openModalWithLoading();
 
-  // Fetch CGPA and Leetcode data
   try {
     const cgpaData = await fetchCgpaStats(srn);
     const leetcodeData = await fetchLeetcodeStats(srn);
@@ -283,82 +281,86 @@ const handleStatsCardClick = async (srn) => {
     if (cgpaData && leetcodeData) {
       const cgpaLeaderboard = cgpaData.leaderboard || [];
       const cgpaRelativeRank = cgpaData.relative_rank;
-
       const leetcodeLeaderboard = leetcodeData.leaderboard || [];
       const leetcodeRelativeRank = leetcodeData.relative_rank;
 
-      // After fetching data, update the modal based on selectedStats
-      setModalContent(
-        <div className="p-6 bg-white rounded-lg shadow-lg relative" onClick={(e) => e.stopPropagation()}>
-          {/* Close Button */}
-          <button
-            className="absolute top-2 right-2 text-gray-700"
-            onClick={() => {
-              console.log("Close button clicked");
-              closeModal();
-            }}
-          >
+      let selectedStats = 'cgpa';
 
-          </button>
+      const handleStatToggle = () => {
+        selectedStats = selectedStats === 'cgpa' ? 'leetcode' : 'cgpa';
+        renderModalContent();
+      };
 
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Stats</h2>
-
-          {/* Buttons for toggling between CGPA and Leetcode */}
-          <div className="flex space-x-4 mb-4">
+      const renderModalContent = () => {
+        setModalContent(
+          <div className="p-6 bg-white rounded-lg shadow-lg relative" onClick={(e) => e.stopPropagation()}>
             <button
-              className={`px-4 py-2 rounded ${selectedStats === 'cgpa' ? 'bg-purple-500 text-white' : 'bg-gray-200 text-gray-800'}`}
-              onClick={() => handleStatButtonClick('cgpa', cgpaLeaderboard, cgpaRelativeRank, leetcodeLeaderboard, leetcodeRelativeRank)}
-            >
-              CGPA
-            </button>
-            <button
-              className={`px-4 py-2 rounded ${selectedStats === 'leetcode' ? 'bg-purple-500 text-white' : 'bg-gray-200 text-gray-800'}`}
-              onClick={() => handleStatButtonClick('leetcode', cgpaLeaderboard, cgpaRelativeRank, leetcodeLeaderboard, leetcodeRelativeRank)}
-            >
-              LeetCode
-            </button>
+              className="absolute top-2 right-2 text-gray-700"
+              onClick={() => {
+                console.log("Close button clicked");
+                closeModal();
+              }}
+            />
+
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Stats</h2>
+
+            {/* Toggle Switch */}
+            <div className="flex items-center mb-6">
+              <div
+                className="relative inline-flex items-center cursor-pointer w-16 h-8 bg-gray-200 rounded-full"
+                onClick={handleStatToggle}
+                aria-label="Toggle between CGPA and LeetCode stats"
+              >
+                <span
+                  className={`absolute w-8 h-8 bg-purple-500 rounded-full shadow-md transform transition-transform ${
+                    selectedStats === 'cgpa' ? 'translate-x-0' : 'translate-x-8'
+                  }`}
+                ></span>
+              </div>
+            </div>
+
+            {/* Conditionally render CGPA stats */}
+            {selectedStats === 'cgpa' && (
+              <>
+                <div className="text-lg font-semibold text-gray-700 mb-4">CGPA Rank Stats:</div>
+                <ul className="space-y-2 mb-4">
+                  {cgpaLeaderboard.map((entry, index) => (
+                    <li key={index} className="text-gray-600">
+                      <span className="font-medium">Name:</span> {entry.name},
+                      <span className="font-medium"> CGPA:</span> {entry.cgpa},
+                      <span className="font-medium"> Rank:</span> {entry.rank}
+                    </li>
+                  ))}
+                </ul>
+                <div className="text-gray-800 font-semibold mb-4">
+                  CGPA Relative Rank: {cgpaRelativeRank}
+                </div>
+              </>
+            )}
+
+            {/* Conditionally render Leetcode stats */}
+            {selectedStats === 'leetcode' && (
+              <>
+                <div className="text-lg font-semibold text-gray-700 mb-4">LeetCode Rank Stats:</div>
+                <ul className="space-y-2">
+                  {leetcodeLeaderboard.map((entry, index) => (
+                    <li key={index} className="text-gray-600">
+                      <span className="font-medium">Name:</span> {entry.name},
+                      <span className="font-medium"> Rank:</span> {entry.rank}
+                    </li>
+                  ))}
+                </ul>
+                <div className="text-gray-800 font-semibold">
+                  LeetCode Relative Rank: {leetcodeRelativeRank}
+                </div>
+              </>
+            )}
           </div>
+        );
+      };
 
-          {/* Conditionally render CGPA stats */}
-          {selectedStats === 'cgpa' && (
-            <>
-              <div className="text-lg font-semibold text-gray-700 mb-4">CGPA Rank Stats:</div>
-              <ul className="space-y-2 mb-4">
-                {cgpaLeaderboard.map((entry, index) => (
-                  <li key={index} className="text-gray-600">
-                    <span className="font-medium">Name:</span> {entry.name},
-                    <span className="font-medium"> CGPA:</span> {entry.cgpa},
-                    <span className="font-medium"> Rank:</span> {entry.rank}
-                  </li>
-                ))}
-              </ul>
-              <div className="text-gray-800 font-semibold mb-4">
-                CGPA Relative Rank: {cgpaRelativeRank}
-              </div>
-            </>
-          )}
-
-          {/* Conditionally render Leetcode stats */}
-          {selectedStats === 'leetcode' && (
-            <>
-              <div className="text-lg font-semibold text-gray-700 mb-4">LeetCode Rank Stats:</div>
-              <ul className="space-y-2">
-                {leetcodeLeaderboard.map((entry, index) => (
-                  <li key={index} className="text-gray-600">
-                    <span className="font-medium">Name:</span> {entry.name},
-                    <span className="font-medium"> Rank:</span> {entry.rank}
-                  </li>
-                ))}
-              </ul>
-              <div className="text-gray-800 font-semibold">
-                LeetCode Relative Rank: {leetcodeRelativeRank}
-              </div>
-            </>
-          )}
-        </div>
-      );
+      renderModalContent();
     } else {
-      // Set error message if data is not available
       setModalContent(
         <div className="p-6 bg-white rounded-lg shadow-lg">
           <h2 className="text-xl font-bold text-red-600">Error loading stats data</h2>
@@ -376,6 +378,114 @@ const handleStatsCardClick = async (srn) => {
     );
   }
 };
+// const handleStatsCardClick = async (srn) => {
+//   openModalWithLoading();
+
+//   try {
+//     const cgpaData = await fetchCgpaStats(srn);
+//     const leetcodeData = await fetchLeetcodeStats(srn);
+
+//     if (cgpaData && leetcodeData) {
+//       const cgpaLeaderboard = cgpaData.leaderboard || [];
+//       const cgpaRelativeRank = cgpaData.relative_rank;
+//       const leetcodeLeaderboard = leetcodeData.leaderboard || [];
+//       const leetcodeRelativeRank = leetcodeData.relative_rank;
+
+//       let selectedStats = 'cgpa';
+
+//       const handleStatToggle = () => {
+//         selectedStats = selectedStats === 'cgpa' ? 'leetcode' : 'cgpa';
+//         renderModalContent();
+//       };
+
+//       const renderModalContent = () => {
+//         setModalContent(
+//           <div className="p-6 bg-white rounded-lg shadow-lg relative" onClick={(e) => e.stopPropagation()}>
+//             <button
+//               className="absolute top-2 right-2 text-gray-700"
+//               onClick={() => {
+//                 console.log("Close button clicked");
+//                 closeModal();
+//               }}
+//             />
+
+//             <h2 className="text-2xl font-bold text-gray-800 mb-4">Stats</h2>
+
+//             {/* Toggle Switch */}
+//             <div className="flex items-center mb-6">
+//               <div
+//                 className="relative inline-flex items-center cursor-pointer w-16 h-8 bg-gray-200 rounded-full"
+//                 onClick={handleStatToggle}
+//                 aria-label="Toggle between CGPA and LeetCode stats"
+//               >
+//                 <span
+//                   className={`absolute w-8 h-8 bg-purple-500 rounded-full shadow-md transform transition-transform ${
+//                     selectedStats === 'cgpa' ? 'translate-x-0' : 'translate-x-8'
+//                   }`}
+//                 ></span>
+//               </div>
+//             </div>
+
+//             {/* Conditionally render CGPA stats */}
+//             {selectedStats === 'cgpa' && (
+//               <>
+//                 <div className="text-lg font-semibold text-gray-700 mb-4">CGPA Rank Stats:</div>
+//                 <ul className="space-y-2 mb-4">
+//                   {cgpaLeaderboard.map((entry, index) => (
+//                     <li key={index} className="text-gray-600">
+//                       <span className="font-medium">Name:</span> {entry.name},
+//                       <span className="font-medium"> CGPA:</span> {entry.cgpa},
+//                       <span className="font-medium"> Rank:</span> {entry.rank}
+//                     </li>
+//                   ))}
+//                 </ul>
+//                 <div className="text-gray-800 font-semibold mb-4">
+//                   CGPA Relative Rank: {cgpaRelativeRank}
+//                 </div>
+//               </>
+//             )}
+
+//             {/* Conditionally render Leetcode stats */}
+//             {selectedStats === 'leetcode' && (
+//               <>
+//                 <div className="text-lg font-semibold text-gray-700 mb-4">LeetCode Rank Stats:</div>
+//                 <ul className="space-y-2">
+//                   {leetcodeLeaderboard.map((entry, index) => (
+//                     <li key={index} className="text-gray-600">
+//                       <span className="font-medium">Name:</span> {entry.name},
+//                       <span className="font-medium"> Rank:</span> {entry.rank}
+//                     </li>
+//                   ))}
+//                 </ul>
+//                 <div className="text-gray-800 font-semibold">
+//                   LeetCode Relative Rank: {leetcodeRelativeRank}
+//                 </div>
+//               </>
+//             )}
+//           </div>
+//         );
+//       };
+
+//       renderModalContent();
+//     } else {
+//       setModalContent(
+//         <div className="p-6 bg-white rounded-lg shadow-lg">
+//           <h2 className="text-xl font-bold text-red-600">Error loading stats data</h2>
+//           <p className="text-gray-600">Please try again later.</p>
+//         </div>
+//       );
+//     }
+//   } catch (error) {
+//     console.error("Error fetching stats:", error);
+//     setModalContent(
+//       <div className="p-6 bg-white rounded-lg shadow-lg">
+//         <h2 className="text-xl font-bold text-red-600">Error loading stats data</h2>
+//         <p className="text-gray-600">Please try again later.</p>
+//       </div>
+//     );
+//   }
+// };
+
 
 // Open modal with loading spinner
 const openModalWithLoading = () => {
@@ -392,42 +502,50 @@ const openModalWithLoading = () => {
 // Handle the button click (CGPA or LeetCode)
 const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcodeLeaderboard, leetcodeRelativeRank) => {
   // Close the modal and reload it with new stats
-  setShowModal(false); // Close modal first
+  setShowModal(false);
 
   setTimeout(() => {
-    setSelectedStats(stat); // Update the selected state
-    openModalWithLoading(); // Reopen the modal with the loading spinner
+    setSelectedStats(stat); // Update the selected stats
+    openModalWithLoading(); // Reopen the modal with loading spinner
 
-    // After the modal is reopened, update the content based on selected stats
+    // Update the modal content based on selected stats
     setModalContent(
-      <div className="p-6 bg-white rounded-lg shadow-lg relative" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="p-6 bg-white rounded-lg shadow-lg relative"
+        onClick={(e) => e.stopPropagation()} // Prevent click event from closing modal
+      >
         {/* Close Button */}
         <button
-          className="absolute top-2 right-2 text-gray-700"
+          className="absolute top-2 right-2 text-gray-700 hover:text-gray-900"
           onClick={() => closeModal()}
         >
-
+          ✕
         </button>
 
+        {/* Title */}
         <h2 className="text-2xl font-bold text-gray-800 mb-4">Stats</h2>
 
-        {/* Buttons for toggling between CGPA and Leetcode */}
+        {/* Toggle Buttons for CGPA and LeetCode */}
         <div className="flex space-x-4 mb-4">
           <button
-            className={`px-4 py-2 rounded ${stat === 'cgpa' ? 'bg-purple-500 text-white' : 'bg-gray-200 text-gray-800'}`}
+            className={`px-4 py-2 rounded ${
+              stat === 'cgpa' ? 'bg-purple-500 text-white' : 'bg-gray-200 text-gray-800'
+            }`}
             onClick={() => handleStatButtonClick('cgpa', cgpaLeaderboard, cgpaRelativeRank, leetcodeLeaderboard, leetcodeRelativeRank)}
           >
             CGPA
           </button>
           <button
-            className={`px-4 py-2 rounded ${stat === 'leetcode' ? 'bg-purple-500 text-white' : 'bg-gray-200 text-gray-800'}`}
+            className={`px-4 py-2 rounded ${
+              stat === 'leetcode' ? 'bg-purple-500 text-white' : 'bg-gray-200 text-gray-800'
+            }`}
             onClick={() => handleStatButtonClick('leetcode', cgpaLeaderboard, cgpaRelativeRank, leetcodeLeaderboard, leetcodeRelativeRank)}
           >
             LeetCode
           </button>
         </div>
 
-        {/* Conditionally render CGPA stats */}
+        {/* CGPA Stats */}
         {stat === 'cgpa' && (
           <>
             <div className="text-lg font-semibold text-gray-700 mb-4">CGPA Rank Stats:</div>
@@ -446,7 +564,7 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
           </>
         )}
 
-        {/* Conditionally render Leetcode stats */}
+        {/* LeetCode Stats */}
         {stat === 'leetcode' && (
           <>
             <div className="text-lg font-semibold text-gray-700 mb-4">LeetCode Rank Stats:</div>
@@ -467,12 +585,6 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
     );
   }, 0); // Slight delay to ensure modal closes before reopening
 };
-
-
-
-
-
-
 
   const handleCardClick = async (type: string, srn: string) => {
     if (!srn) {
@@ -635,48 +747,7 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
   }
 }
 };
-  // const handleResumeClick = async () => {
-  //   setShowModal(true);
-  //   setModalContent(
-  //     <div className="flex items-center justify-center p-12">
-  //       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-  //     </div>
-  //   );
 
-  //   try {
-  //     const response = await fetch(`http://100.102.21.101:8000/getResume?srn=${studentSRN}`);
-  //     const blob = await response.blob();
-  //     const url = URL.createObjectURL(blob);
-  //     setResumeData(url);
-
-  //     setModalContent(
-  //       <div className="p-6 bg-white rounded-lg shadow-lg flex flex-col items-center">
-  //         <h2 className="text-2xl font-bold text-gray-800 mb-4">Resume</h2>
-  //         <div className="w-full h-[600px] overflow-y-auto">
-  //           <iframe
-  //             src={url}
-  //             frameBorder="0"
-  //             title="Resume"
-  //             className="w-full h-full"
-  //           />
-  //         </div>
-  //       </div>
-  //     );
-  //   } catch (error) {
-  //     console.error("Error fetching resume data:", error);
-  //     setResumeData("Error loading resume data. Please try again later.");
-  //     setModalContent(
-  //       <div className="p-6 bg-white rounded-lg shadow-lg">
-  //         <h2 className="text-xl font-bold text-red-600">Error loading resume data</h2>
-  //         <p className="text-gray-600">Please try again later.</p>
-  //       </div>
-  //     );
-  //   }
-  // };
-  // const closeModal = () => {
-  //   setShowModal(false);
-  //   setModalContent(null);
-  // };
   const handleResumeClick = async () => {
     setIsResumeOpen(prev => !prev);
     setShowFooter(false); // Show footer depending on modal state
@@ -794,6 +865,7 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
           >
             Delete
           </button>
+
 
           {/* Display the response or loading message */}
           {redButtonResponse && (
@@ -1034,19 +1106,6 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
 
 
 </div>
-
-
-
-
-
-
-
-            {/* <button
-              onClick={handleResumeClick}
-              className="mt-6 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-300"
-            >
-              View Resume
-            </button> */}
           </main>
 
        {showModal && (
@@ -1119,6 +1178,23 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
                 0%, 100% { transform: scale(1); opacity: 0.2; }
                 50% { transform: scale(1.2); opacity: 0.4; }
             }
+            .w-16.h-8 {
+            width: 64px;
+            height: 32px;
+          }
+
+          .w-8.h-8 {
+            width: 32px;
+            height: 32px;
+          }
+
+          .transition-transform {
+            transition: transform 0.3s ease;
+          }
+
+          .bg-purple-500 {
+            background-color: #6b46c1;
+          }
         `}</style>
     </div>
   );
