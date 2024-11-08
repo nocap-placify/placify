@@ -459,7 +459,7 @@ func GetStudentName(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Printf("Student Name: %s\n", name)
 	// Return the student's name in the response
-	fmt.Fprintf(w, "Student Name: %s\n", name)
+	fmt.Fprintf(w, "%s", name)
 }
 
 func GetStudentGithub(db *gorm.DB, w http.ResponseWriter, r *http.Request) {

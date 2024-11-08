@@ -66,6 +66,7 @@ export const Landing = () => {
             const response = await axios.get(`http://100.102.21.101:8000/student?srn=${inputValue}&password=${encryptedPassword}`, {
             });
                 const studentName = response.data;
+                console.log(studentName)
                 if (!studentName) {
                     setShowShakeAnimation(true);
                     setTimeout(() => setShowShakeAnimation(false), 400);
