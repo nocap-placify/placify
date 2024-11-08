@@ -14,7 +14,6 @@ export const Landing = () => {
     const [inputValue, setInputValue] = useState('');
     const [isInputValid, setIsInputValid] = useState(true);
     const [showShakeAnimation, setShowShakeAnimation] = useState(false);
-    const [showWrongAnimation, setShowWrongAnimation] = useState(false);
     const [scale, setScale] = useState(1);
     const [studentName, setStudentName] = useState('');
     const navigate = useNavigate();
@@ -27,16 +26,13 @@ export const Landing = () => {
         setInputValue(value);
     };
 
-
     const handleSubmit = async () => {
         if (validateInput(inputValue)) {
             setIsInputValid(true);
             setShowShakeAnimation(false);
             try {
-
                 const response = await axios.get(`http://100.102.21.101:8000/student?srn=${inputValue}`);
                 const studentName = response.data;
-                console.log(studentName);
                 if (!studentName) {
                     setShowShakeAnimation(true);
                     setTimeout(() => setShowShakeAnimation(false), 400);
@@ -84,7 +80,7 @@ export const Landing = () => {
 
     return (
         <div className="relative min-h-screen overflow-hidden bg-black">
-        <div className="absolute inset-0 overflow-hidden">
+             <div className="absolute inset-0 overflow-hidden">
             {/* Background animations */}
             <div className="absolute inset-0 opacity-10">
                 <div className="absolute h-full w-full animate-wave"
@@ -124,90 +120,60 @@ export const Landing = () => {
             ))}
         </div>
 
-            <div className="pointer-events-none fixed transition-transform duration-100 ease-out"
-                style={{
-                    left: `${mousePosition.x}px`,
-                    top: `${mousePosition.y}px`,
-                    transform: 'translate(-50%, -50%)',
-                    width: '400px',
-                    height: '400px',
-                    background: 'radial-gradient(circle, rgba(168, 85, 247, 0.2) 0%, rgba(168, 85, 247, 0) 70%)',
-                }}
-            />
-
-            <div
-                className={`relative z-10 flex min-h-screen flex-col items-center justify-center px-4 transition-opacity duration-1000 ${
-                    isVisible ? 'opacity-100' : 'opacity-0'
-                }`}
-                style={{
-                    transform: 'translateY(-50px)',
-                }}
-            >
-                <h1
-                    className="typewriter font-bold text-white"
-                    style={{
-                        fontSize: '3.5rem',
-                        transform: 'translateY(-60px)',
-                    }}
-                >Placify</h1>
-
-                {/* Input with Arrow Button */}
-                <div className="mt-8 relative w-80">
-                    <input
-                        type="text"
-                        ref={inputRef}
-                        value={inputValue}
-                        onChange={handleInputChange}
-                        onKeyDown={handleKeyDown}
-                        onFocus={() => setIsInputActive(true)}
-                        onBlur={() => setIsInputActive(false)}
-                        className={`w-full p-4 rounded-full bg-white bg-opacity-20 text-white text-lg pl-5 pr-16 focus:outline-none ${
-                            showShakeAnimation ? 'shake' : ''
-                        }`}
-                        placeholder="Enter your SRN"
-                        style={{
-                            border: showShakeAnimation || !isInputValid ? '1px solid red' : '1px solid rgba(255, 255, 255, 0.5)',
-                            transition: 'border-color 0.3s ease',
-                        }}
-                    />
-                    <button
-                        onClick={handleSubmit}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white bg-purple-600 hover:bg-purple-700 p-2 rounded-full shadow-lg transition duration-300 ease-in-out"
-                        style={{
-                            width: '40px',
-                            height: '40px',
-                        }}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-6 h-6">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 12h14M12 5l7 7-7 7" />
-                        </svg>
-                    </button>
-                </div>
-
-                {/* Background with blur effect */}
+            <div className={`absolute inset-0 ${isInputActive ? 'backdrop-blur-lg' : ''}`}>
                 <div
-                    className={`absolute inset-0 transition-all duration-500 ${
-                        isInputActive ? 'backdrop-blur-lg' : ''
-                    }`}
+                    className="pointer-events-none fixed transition-transform duration-100 ease-out"
                     style={{
-                        zIndex: -1,
-                        backgroundImage: 'url("/path/to/your/background-image.jpg")',
-                        backgroundSize: 'cover',
+                        left: `${mousePosition.x}px`,
+                        top: `${mousePosition.y}px`,
+                        transform: 'translate(-50%, -50%)',
+                        width: '400px',
+                        height: '400px',
+                        background: 'radial-gradient(circle, rgba(168, 85, 247, 0.2) 0%, rgba(168, 85, 247, 0) 70%)',
                     }}
                 />
-            </div>
 
-            {/* Footer */}
-            <footer
-                className="absolute bottom-0 w-full text-center text-gray-500 text-sm mb-4"
-                style={{
-                    opacity: 0.7,
-                }}
-            >
-                Made with <span className="text-pink-500">🩵</span> by <a href="https://github.com/nocap-placify" className="underline">nocap-placify</a>.
-            </footer>
+                <div className={`relative z-10 flex min-h-screen flex-col items-center justify-center px-4 transition-opacity duration-1000 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
+                    <h1
+                        className="typewriter font-bold text-white"
+                        style={{
+                            fontSize: '3.5rem',
+                            transform: 'translateY(-60px)',
+                        }}
+                    >Placify</h1>
 
-            <style jsx>{`
+                    {/* Input with Arrow Button */}
+                    <div className="mt-8 relative w-80">
+                        <input
+                            type="text"
+                            ref={inputRef}
+                            value={inputValue}
+                            onChange={handleInputChange}
+                            onKeyDown={handleKeyDown}
+                            onFocus={() => setIsInputActive(true)}
+                            onBlur={() => setIsInputActive(false)}
+                            className={`w-full p-4 rounded-full bg-white bg-opacity-20 text-white text-lg pl-5 pr-16 focus:outline-none ${showShakeAnimation ? 'shake' : ''}`}
+                            placeholder="Enter your SRN"
+                            style={{
+                                border: showShakeAnimation || !isInputValid ? '1px solid red' : '1px solid rgba(255, 255, 255, 0.5)',
+                                transition: 'border-color 0.3s ease',
+                            }}
+                        />
+                        <button
+                            onClick={handleSubmit}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white bg-purple-600 hover:bg-purple-700 p-2 rounded-full shadow-lg transition duration-300 ease-in-out"
+                            style={{
+                                width: '40px',
+                                height: '40px',
+                            }}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-6 h-6">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 12h14M12 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <style jsx>{`
     .shake {
         animation: shake 0.4s ease;
     }
@@ -323,16 +289,16 @@ export const Landing = () => {
         animation: pulse 5s infinite ease-in-out;
     }
 `}</style>
-
-<div className="absolute inset-0 opacity-10">
-    <div className="absolute h-full w-full animate-wave" 
-        style={{
-            backgroundImage: 'linear-gradient(to right, purple 1px, transparent 1px), linear-gradient(to bottom, purple 1px, transparent 1px)',
-            backgroundSize: '50px 50px',
-        }}
-    />
-</div>
-
+                {/* Footer */}
+                <footer
+                    className="absolute bottom-0 w-full text-center text-gray-500 text-sm mb-4"
+                    style={{
+                        opacity: 0.7,
+                    }}
+                >
+                    Made with <span className="text-pink-500">🩵</span> by <a href="https://github.com/nocap-placify" className="underline">nocap-placify</a>.
+                </footer>
+            </div>
         </div>
     );
 };
