@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as forge from 'node-forge'
+import user from '../assets/user.svg';
 
 interface MousePosition {
     x: number;
@@ -176,49 +177,48 @@ export const Landing = () => {
     return (
         <div className="relative min-h-screen overflow-hidden bg-black">
             {/* Button to open the form */}
-            <button
-                onClick={() => setIsFormOpen(true)}
-                className="absolute top-4 right-4 p-2 bg-blue-500 text-white rounded z-30 hover:bg-blue-600 transition-colors duration-300"
-            >
-                Open Form
-            </button>
+           
 
             {/* Form Modal */}
             {isFormOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40">
-                    <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full max-h-[80vh] overflow-y-auto">
-                        <h2 className="text-lg font-semibold mb-4">Enter Your Details</h2>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40">
+        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full max-h-[80vh] overflow-y-auto">
+            <h2 className="text-xl font-semibold mb-6 text-center text-gray-700">Student Details</h2>
 
-                        <input type="text" placeholder="Name" value={formName} onChange={(e) => setFormName(e.target.value)} className={`w-full p-2 mb-4 border rounded ${inputErrors.formName ? 'border-red-500' : ''}`} />
-                        <input type="text" placeholder="SRN" value={formSrn} onChange={(e) => setFormsrn(e.target.value)} className={`w-full p-2 mb-4 border rounded ${inputErrors.formSrn ? 'border-red-500' : ''}`} />
-                        <input type="text" placeholder="Semester" value={formsem} onChange={(e) => setFormsem(e.target.value)} className={`w-full p-2 mb-4 border rounded ${inputErrors.formsem ? 'border-red-500' : ''}`} />
-                        <input type="text" placeholder="GitHub Link" value={formGithubLink} onChange={(e) => setFormG_profile(e.target.value)} className={`w-full p-2 mb-4 border rounded ${inputErrors.formGithubLink ? 'border-red-500' : ''}`} />
-                        <input type="text" placeholder="LeetCode Link" value={formLeetcodeLink} onChange={(e) => setFormL_profile(e.target.value)} className={`w-full p-2 mb-4 border rounded ${inputErrors.formLeetcodeLink ? 'border-red-500' : ''}`} />
-                        <input type="text" placeholder="Mentor Name" value={formMentorName} onChange={(e) => setFormMentorName(e.target.value)} className={`w-full p-2 mb-4 border rounded ${inputErrors.formMentorName ? 'border-red-500' : ''}`} />
-                        <input type="text" placeholder="LinkedIn Link" value={formLinkedinLink} onChange={(e) => setFormLinkedin(e.target.value)} className={`w-full p-2 mb-4 border rounded ${inputErrors.formLinkedinLink ? 'border-red-500' : ''}`} />
-                        <input type="text" placeholder="CGPA" value={formCgpa} onChange={(e) => setFormcgpa(e.target.value)} className={`w-full p-2 mb-4 border rounded ${inputErrors.formCgpa ? 'border-red-500' : ''}`} />
-                        <input type="number" placeholder="Age" value={formAge} onChange={(e) => setFormage(e.target.value)} className={`w-full p-2 mb-4 border rounded ${inputErrors.formAge ? 'border-red-500' : ''}`} />
-                        <input type="text" placeholder="Phone No" value={formPhoneNo} onChange={(e) => setFormPh_no(e.target.value)} className={`w-full p-2 mb-4 border rounded ${inputErrors.formPhoneNo ? 'border-red-500' : ''}`} />
-                        <input type="text" placeholder="Degree" value={formDegree} onChange={(e) => setFormDegree(e.target.value)} className={`w-full p-2 mb-4 border rounded ${inputErrors.formDegree ? 'border-red-500' : ''}`} />
-                        <input type="text" placeholder="Stream" value={formStream} onChange={(e) => setFormStream(e.target.value)} className={`w-full p-2 mb-4 border rounded ${inputErrors.formStream ? 'border-red-500' : ''}`} />
-                        <input type="text" placeholder="Gender" value={formGender} onChange={(e) => setFormGender(e.target.value)} className={`w-full p-2 mb-4 border rounded ${inputErrors.formGender ? 'border-red-500' : ''}`} />
-                        <input type="email" placeholder="Email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} className={`w-full p-2 mb-4 border rounded ${inputErrors.formEmail ? 'border-red-500' : ''}`} />
+            <div className="space-y-4">
+                <input type="text" placeholder="Name" value={formName} onChange={(e) => setFormName(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formName ? 'border-red-500' : 'border-gray-300'}`} />
+                <input type="text" placeholder="SRN" value={formSrn} onChange={(e) => setFormsrn(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formSrn ? 'border-red-500' : 'border-gray-300'}`} />
+                <input type="text" placeholder="Semester" value={formsem} onChange={(e) => setFormsem(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formsem ? 'border-red-500' : 'border-gray-300'}`} />
+                <input type="text" placeholder="GitHub Link" value={formGithubLink} onChange={(e) => setFormG_profile(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formGithubLink ? 'border-red-500' : 'border-gray-300'}`} />
+                <input type="text" placeholder="LeetCode Link" value={formLeetcodeLink} onChange={(e) => setFormL_profile(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formLeetcodeLink ? 'border-red-500' : 'border-gray-300'}`} />
+                <input type="text" placeholder="Mentor Name" value={formMentorName} onChange={(e) => setFormMentorName(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formMentorName ? 'border-red-500' : 'border-gray-300'}`} />
+                <input type="text" placeholder="LinkedIn Link" value={formLinkedinLink} onChange={(e) => setFormLinkedin(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formLinkedinLink ? 'border-red-500' : 'border-gray-300'}`} />
+                <input type="text" placeholder="CGPA" value={formCgpa} onChange={(e) => setFormcgpa(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formCgpa ? 'border-red-500' : 'border-gray-300'}`} />
+                <input type="number" placeholder="Age" value={formAge} onChange={(e) => setFormage(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formAge ? 'border-red-500' : 'border-gray-300'}`} />
+                <input type="text" placeholder="Phone No" value={formPhoneNo} onChange={(e) => setFormPh_no(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formPhoneNo ? 'border-red-500' : 'border-gray-300'}`} />
+                <input type="text" placeholder="Degree" value={formDegree} onChange={(e) => setFormDegree(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formDegree ? 'border-red-500' : 'border-gray-300'}`} />
+                <input type="text" placeholder="Stream" value={formStream} onChange={(e) => setFormStream(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formStream ? 'border-red-500' : 'border-gray-300'}`} />
+                <input type="text" placeholder="Gender" value={formGender} onChange={(e) => setFormGender(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formGender ? 'border-red-500' : 'border-gray-300'}`} />
+                <input type="email" placeholder="Email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formEmail ? 'border-red-500' : 'border-gray-300'}`} />
+            </div>
 
-                        <button
-                            onClick={handleFormSubmit}
-                            className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 transition-colors duration-300"
-                        >
-                            Submit
-                        </button>
-                        <button
-                            onClick={() => setIsFormOpen(false)}
-                            className="w-full bg-red-500 text-white p-2 rounded mt-2 hover:bg-red-600 transition-colors duration-300"
-                        >
-                            Close
-                        </button>
-                    </div>
-                </div>
-            )}
+            <div className="flex items-center justify-between mt-6">
+                <button
+                    onClick={handleFormSubmit}
+                    className="w-full bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-600 transition duration-200"
+                >
+                    Submit
+                </button>
+                <button
+                    onClick={() => setIsFormOpen(false)}
+                    className="w-full bg-gray-300 text-gray-700 p-3 rounded-lg hover:bg-gray-400 transition duration-200 ml-4"
+                >
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+)}
 
              <div className="absolute inset-0 overflow-hidden">
             {/* Background animations */}
@@ -274,6 +274,16 @@ export const Landing = () => {
                 />
 
                 <div className={`relative z-10 flex min-h-screen flex-col items-center justify-center px-4 transition-opacity duration-1000 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
+                <button
+                    onClick={() => setIsFormOpen(true)}
+                    className="absolute top-4 right-4 w-12 h-12 bg-purple-500 text-white rounded-full flex items-center justify-center z-30 hover:bg-purple-600 transition-colors duration-300 shadow-lg"
+                >
+                    <img
+                        src={user}
+                        alt="User"
+                        className="w-8 h-8 rounded-full" // Icon size within the circular button
+                    />
+                </button>
                     <h1
                         className="typewriter font-bold text-white"
                         style={{
