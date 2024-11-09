@@ -18,7 +18,9 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -896,9 +898,149 @@ func servePublicKey(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "/home/suraj/Documents/keys/public_key.pem")
 }
 
+var counter int = 0
+
+func InsertStudent(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get("name")
+	srn := r.URL.Query().Get("srn")
+	sem := r.URL.Query().Get("sem")
+	git_link := r.URL.Query().Get("git_link")
+	leet_link := r.URL.Query().Get("leet_link")
+	men_name := r.URL.Query().Get("men_name")
+	linkedin_link := r.URL.Query().Get("linkedin_link")
+	cgpa := r.URL.Query().Get("cgpa")
+	age := r.URL.Query().Get("age")
+	phone_num := r.URL.Query().Get("phone_num")
+	degree := r.URL.Query().Get("degree")
+	stream := r.URL.Query().Get("stream")
+	gender := r.URL.Query().Get("gender")
+	email := r.URL.Query().Get("email")
+	resume := r.URL.Query().Get("resume")
+
+	username, err := getUsernameFromURL(git_link)
+	token := ""
+	profile := fetchProfileData(username, token)
+	git := Github{
+		GithubID:  git_link,
+		StudentID: srn,
+		Username:  profile.Username,
+		Bio:       profile.Bio,
+		RepoCount: profile.RepoCount,
+	}
+
+	mentorid, err := fetchMentorID(db, men_name)
+
+	cmd := exec.Command("gdown", "--fuzzy", resume)
+
+	cmd.Dir = "/home/suraj/Documents/Resumes"
+
+	output, err := cmd.Output()
+	if err != nil {
+		log.Fatalf("Error executing command: %v", err)
+	}
+	fmt.Println(string(output))
+
+	resumePath := filepath.Join("/home/suraj/Documents/Resumes", srn+"_Resume.pdf")
+	cGpa, err := strconv.ParseFloat(cgpa, 64)
+	aGe, err := strconv.Atoi(age)
+	sEm, err := strconv.Atoi(sem)
+
+	student := Student{
+		StudentID: srn,
+		Name:      name,
+		PhoneNo:   phone_num,
+		Dob:       time.Now(),
+		Gender:    gender,
+		Resume:    resumePath,
+		Sem:       sEm,
+		MentorID:  mentorid,
+		CGPA:      cGpa,
+		Email:     email,
+		Age:       aGe,
+		Linkedin:  linkedin_link,
+		Degree:    degree,
+		Stream:    stream,
+	}
+
+	err = insertStudent(db, student)
+	if err != nil {
+		log.Fatal("failed to insert student:", err)
+	}
+	log.Println("Student inserted successfully")
+
+	err = insertGithub(db, git)
+	if err != nil {
+		log.Fatal("failed to insert github:", err)
+	}
+	log.Println("github inserted successfully")
+	//inserting repos
+	fmt.Printf("Username: %s\n", profile.Username)
+	fmt.Printf("Bio: %s\n", profile.Bio)
+	fmt.Printf("Public Repositories: %s\n", profile.RepoCount)
+	fmt.Println("Pinned Repositories:")
+	for _, repo := range profile.PinnedRepos {
+		fmt.Printf("Repository Name: %s\n", repo.Name)
+		fmt.Printf("About: %s\n", repo.About)
+		fmt.Printf("Languages Used: %s\n", strings.Join(repo.Languages, ", "))
+		test_repo := Repository{
+			RepoID:   git_link + "/" + repo.Name,
+			GithubID: git_link,
+			RepoName: repo.Name,
+			Language: strings.Join(repo.Languages, ", "),
+			Desc:     repo.About,
+		}
+		fmt.Printf("testing repository struct repo:%s, git:%s, reponame:%s, lang:%s, desc:%s\n", test_repo.RepoID, test_repo.GithubID, test_repo.RepoName, test_repo.Language, test_repo.Desc)
+		if err := insertRepository(db, test_repo); err != nil {
+			log.Fatalf("Failed to insert repository: %v", err)
+		} else {
+			log.Println("Repository inserted successfully")
+		}
+	}
+	//inserting leetcode
+	if username, err := getUsernameFromURL(leet_link); err == nil {
+		leetProfile := fetchLeetCodeProfileData(username)
+		fmt.Printf("LeetCode Username: %s, Total Solved: %d, Easy: %d, Medium: %d, Hard: %d, Rank: %d\n",
+			leetProfile.Username, leetProfile.TotalSolved, leetProfile.EasySolved, leetProfile.MediumSolved, leetProfile.HardSolved, leetProfile.Ranking)
+		leetcodeData := LeetCode{
+			LeetCodeID: leet_link,
+			StudentID:  srn,
+			Username:   leetProfile.Username,
+			Rank:       leetProfile.Ranking,
+		}
+
+		err = insertLeetCode(db, leetcodeData)
+		if err != nil {
+			log.Printf("Failed to insert LeetCode data for %s: %v", leet_link, err)
+		} else {
+			log.Println("LeetCode data inserted successfully")
+		}
+	} else {
+		log.Printf("Skipping invalid LeetCode URL for student %s: %v", srn, err)
+	}
+
+	if userleet, err := getUsernameFromURL(leet_link); err == nil {
+		leetProfile := fetchLeetCodeProfileData(userleet)
+		url := fmt.Sprintf("https://leetcode.com/%s", userleet)
+		problems := Problems{
+			ProblemID:  counter,
+			LeetcodeID: url,
+			NoEasy:     leetProfile.EasySolved,
+			NoMedium:   leetProfile.MediumSolved,
+			NoHard:     leetProfile.HardSolved,
+		}
+		err = insertProblems(db, problems)
+		if err != nil {
+			log.Fatal("failed to insert problems", err)
+		}
+		log.Println("problems inserted successfully")
+		counter = counter + 1
+	}
+
+}
+
 func main() {
 	start := time.Now()
-	counter := 0
+
 	dsn := "host=100.102.21.101 user=postgres password=dbms_porj dbname=dbms_project port=5432 sslmode=disable TimeZone=Asia/Shanghai"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
@@ -1206,7 +1348,11 @@ func main() {
 		deleteStudent(db, w, r)
 	}).Methods("GET")
 
-	r.HandleFunc("/getPublicKey", servePublicKey).Methods("GET")
+	// r.HandleFunc("/getPublicKey", servePublicKey).Methods("GET")
+
+	r.HandleFunc("/insertStudent", func(w http.ResponseWriter, r *http.Request) {
+		InsertStudent(db, w, r)
+	}).Methods("GET")
 
 	// Calculate elapsed time
 	elapsed := time.Since(start)
