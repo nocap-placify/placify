@@ -417,6 +417,7 @@ func GetStudentName(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	fileContent := string(content)
 	if fileContent != encryptedPass {
 		http.Error(w, "wrong password", http.StatusForbidden)
+		return
 	}
 	srn := r.URL.Query().Get("srn")
 	var name string
@@ -835,7 +836,8 @@ func InsertStudent(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 
 	output, err := cmd.Output()
 	if err != nil {
-		log.Fatalf("Error executing command: %v", err)
+		http.Error(w, "Couldn't add resume", http.StatusInternalServerError)
+		log.Printf("Error executing command: %v", err)
 	}
 	fmt.Println(string(output))
 
@@ -863,13 +865,14 @@ func InsertStudent(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 
 	err = insertStudent(db, student)
 	if err != nil {
-		log.Fatal("failed to insert student:", err)
+		log.Printf("failed to insert student:", err)
 	}
 	log.Println("Student inserted successfully")
 
 	err = insertGithub(db, git)
 	if err != nil {
-		log.Fatal("failed to insert github:", err)
+		http.Error(w, "Couldn't insert github", http.StatusInternalServerError)
+		log.Print("failed to insert github:", err)
 	}
 	log.Println("github inserted successfully")
 	//inserting repos
@@ -890,6 +893,7 @@ func InsertStudent(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		}
 		fmt.Printf("testing repository struct repo:%s, git:%s, reponame:%s, lang:%s, desc:%s\n", test_repo.RepoID, test_repo.GithubID, test_repo.RepoName, test_repo.Language, test_repo.Desc)
 		if err := insertRepository(db, test_repo); err != nil {
+			http.Error(w, "Couldnt insert repo", http.StatusInternalServerError)
 			log.Fatalf("Failed to insert repository: %v", err)
 		} else {
 			log.Println("Repository inserted successfully")
@@ -909,6 +913,7 @@ func InsertStudent(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 
 		err = insertLeetCode(db, leetcodeData)
 		if err != nil {
+			http.Error(w, "Failed to insert leetcode", http.StatusInternalServerError)
 			log.Printf("Failed to insert LeetCode data for %s: %v", leet_link, err)
 		} else {
 			log.Println("LeetCode data inserted successfully")
@@ -929,11 +934,14 @@ func InsertStudent(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		}
 		err = insertProblems(db, problems)
 		if err != nil {
-			log.Fatal("failed to insert problems", err)
+			http.Error(w, "Failed to insert problems", http.StatusInternalServerError)
+			log.Println("failed to insert problems", err)
 		}
 		log.Println("problems inserted successfully")
 		counter = counter + 1
 	}
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Student and all associated records inserted successfully"))
 
 }
 
