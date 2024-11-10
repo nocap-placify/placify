@@ -62,11 +62,11 @@ type Info struct {
 	StudentID       string    `gorm:"column:student_id;primaryKey" csv:"srn"`
 	Name            string    `gorm:"column:name" csv:"name"`
 	PhoneNo         string    `gorm:"column:phone_no" csv:"ph_no"`
-	DOB             time.Time `gorm:"column:dob" csv:"dob"` // Add dob to the CSV if available
+	DOB             time.Time `gorm:"column:dob" csv:"dob"`
 	Gender          string    `gorm:"column:gender" csv:"gender"`
 	Resume          string    `gorm:"column:resume" csv:"resume"`
-	Sem             int       `gorm:"column:sem" csv:"sem"`                 // Add sem to CSV if relevant
-	MentorID        string    `gorm:"column:mentor_name" csv:"mentor_name"` // Adjust if MentorID maps to a different field
+	Sem             int       `gorm:"column:sem" csv:"sem"`
+	MentorID        string    `gorm:"column:mentor_name" csv:"mentor_name"`
 	CGPA            float64   `gorm:"column:cgpa" csv:"cgpa"`
 	Degree          string    `gorm:"column:degree" csv:"degree"`
 	Stream          string    `gorm:"column:stream" csv:"stream"`
@@ -92,15 +92,15 @@ type Mentor_Session_DB struct {
 }
 
 type Student struct {
-	StudentID string    `gorm:"primaryKey;column:student_id"` // Assuming student_id is an auto-incrementing primary key
+	StudentID string    `gorm:"primaryKey;column:student_id"`
 	Name      string    `gorm:"type:varchar(100);column:name"`
 	PhoneNo   string    `gorm:"type:varchar(15);column:phone_no"`
-	Dob       time.Time `gorm:"type:date;column:dob"` // Use string or time.Time based on your requirements
+	Dob       time.Time `gorm:"type:date;column:dob"`
 	Gender    string    `gorm:"type:varchar(10);column:gender"`
 	Resume    string    `gorm:"type:text;column:resume"`
 	Sem       int       `gorm:"column:sem"`
-	MentorID  int       `gorm:"column:mentor_id"`              // Use pointer if the field can be NULL
-	CGPA      float64   `gorm:"type:numeric(4,2);column:cgpa"` // Use float64 to represent numeric types
+	MentorID  int       `gorm:"column:mentor_id"`
+	CGPA      float64   `gorm:"type:numeric(4,2);column:cgpa"`
 	Email     string    `gorm:"type:varchar(255);column:email"`
 	Age       int       `gorm:"column:age"`
 	Linkedin  string    `gorm:"column:linkedin"`
@@ -168,7 +168,6 @@ func (Repository) TableName() string {
 }
 
 func insertStudent(db *gorm.DB, student Student) error {
-	// Prepare the SQL query to insert a new student
 	query := `
 		INSERT INTO student
 		(student_id, name, phone_no, dob, gender, resume, sem, mentor_id, cgpa, email, age, linkedin, degree, stream)
@@ -185,14 +184,13 @@ func insertStudent(db *gorm.DB, student Student) error {
 }
 
 func fetchMentorID(db *gorm.DB, name string) (int, error) {
-	// Log the mentor name being searched
 	if name == "" {
 		log.Println("Warning: Mentor name is empty. Check CSV data or mapping logic.")
 		return 0, fmt.Errorf("mentor name is empty")
 	}
 
 	var mentor Mentor
-	err := db.Where("mentor_name = ?", name).First(&mentor).Error
+	err := db.Raw("SELECT * FROM mentors WHERE mentor_name = ? LIMIT 1", name).Scan(&mentor).Error
 	if err != nil {
 		return 0, err
 	}
@@ -208,8 +206,6 @@ func fetchProfileData(username, token string) ProfileData {
 		log.Fatal("Failed to fetch profile:", err)
 	}
 	defer resp.Body.Close()
-
-	// Parse HTML
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
 		log.Fatal("Failed to parse HTML:", err)
@@ -219,21 +215,15 @@ func fetchProfileData(username, token string) ProfileData {
 	profile.Bio = strings.TrimSpace(doc.Find("div.user-profile-bio").Text())
 
 	profile.RepoCount = strings.TrimSpace(doc.Find("span.Counter").First().Text())
-
-	// Select each pinned repository and extract details
 	doc.Find(".pinned-item-list-item-content").Each(func(i int, s *goquery.Selection) {
 		repo := PinnedRepo{}
-
-		// Get repo name
+		// get repo name
 		repo.Name = strings.TrimSpace(s.Find(".repo").Text())
-
-		// Get about section if available
+		// get about section if available
 		repo.About = strings.TrimSpace(s.Find("p.pinned-item-desc").Text())
-
-		// Fetch all languages used in the repository
+		// fetch all languages used in the repository
 		repo.Languages = fetchRepoLanguages(username, repo.Name, token)
-
-		// Add this repository to the profile's pinned repos list
+		// add this repository to the profile's pinned repos list
 		profile.PinnedRepos = append(profile.PinnedRepos, repo)
 	})
 
@@ -244,7 +234,6 @@ func fetchProfileData(username, token string) ProfileData {
 func fetchRepoLanguages(username, repoName, token string) []string {
 	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/languages", username, repoName)
 
-	// Create request with optional authentication
 	req, _ := http.NewRequest("GET", url, nil)
 	if token != "" {
 		req.Header.Add("Authorization", "token "+token)
@@ -258,7 +247,6 @@ func fetchRepoLanguages(username, repoName, token string) []string {
 	}
 	defer resp.Body.Close()
 
-	// Parse JSON response to get languages
 	var languagesMap map[string]int
 	body, _ := io.ReadAll(resp.Body)
 	if err := json.Unmarshal(body, &languagesMap); err != nil {
@@ -266,7 +254,6 @@ func fetchRepoLanguages(username, repoName, token string) []string {
 		return nil
 	}
 
-	// Extract language names as a slice
 	var languages []string
 	for lang := range languagesMap {
 		languages = append(languages, lang)
@@ -274,13 +261,11 @@ func fetchRepoLanguages(username, repoName, token string) []string {
 	return languages
 }
 func getUsernameFromURL(githubURL string) (string, error) {
-	// Parse the URL
 	parsedURL, err := url.Parse(githubURL)
 	if err != nil {
 		return "", err
 	}
 
-	// Split the path and get the username
 	parts := strings.Split(parsedURL.Path, "/")
 	if len(parts) < 2 || parts[1] == "" {
 		return "", fmt.Errorf("invalid GitHub URL: %s", githubURL)
@@ -300,13 +285,11 @@ func insertGithub(db *gorm.DB, github Github) error {
 }
 
 func insertProblems(db *gorm.DB, problems Problems) error {
-	// SQL query to insert a new row into the "problems" table
 	query := `
 		INSERT INTO problems (problem_id, leetcode_id, no_easy, no_medium, no_hard)
 		VALUES ($1, $2, $3, $4, $5);
 	`
 
-	// Execute the query with the provided values
 	err := db.Exec(query, problems.ProblemID, problems.LeetcodeID, problems.NoEasy, problems.NoMedium, problems.NoHard).Error
 	if err != nil {
 		return fmt.Errorf("could not insert problem: %v", err)
@@ -316,13 +299,10 @@ func insertProblems(db *gorm.DB, problems Problems) error {
 
 func insertMentorSessions(db *gorm.DB, mentors Mentor_Session_DB) error {
 	query := `INSERT INTO mentor_sessions (mentor_id, student_id, date, advice)
-	VALUES ($1, $2, $3, $4)` // Removed the semicolon inside VALUES
-
-	// Correctly handle the error returned by db.Exec
+	VALUES ($1, $2, $3, $4)`
 	if err := db.Exec(query, mentors.MentorID, mentors.StudentID, mentors.Date, mentors.Advice).Error; err != nil {
 		return fmt.Errorf("couldn't insert into mentor_sessions: %v", err)
 	}
-
 	return nil
 }
 
@@ -391,7 +371,6 @@ func decryptAESKey(encryptedAESKey string, privateKey *rsa.PrivateKey) ([]byte, 
 	if err != nil {
 		return nil, err
 	}
-	// Decrypt using RSA with OAEP (requires sha256 as the hash function)
 	return rsa.DecryptOAEP(sha256.New(), rand.Reader, privateKey, aesKey, nil)
 }
 
@@ -425,34 +404,26 @@ func readPasswordHash() (string, error) {
 
 // GetStudentName retrieves the student name based on the provided SRN and password
 func GetStudentName(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
-
 	encryptedPass := r.URL.Query().Get("password")
-
 	file, err := os.Open("testing.txt")
 	if err != nil {
 		log.Println("Error opening file: %v", err)
 	}
 	defer file.Close()
-
 	content, err := io.ReadAll(file)
 	if err != nil {
 		log.Println("Error reading file: %v", err)
 	}
-
-	// Convert the byte slice to a string
 	fileContent := string(content)
-
 	if fileContent != encryptedPass {
 		http.Error(w, "wrong password", http.StatusForbidden)
 	}
-
 	srn := r.URL.Query().Get("srn")
 	var name string
-	result := db.Table("student").Select("name").Where("student_id = ?", srn).Scan(&name)
+	err = db.Raw("SELECT name FROM student WHERE student_id = ?", srn).Row().Scan(&name)
 
-	// Check if the student was found
-	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			http.Error(w, "Student not found", http.StatusNotFound)
 		} else {
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -460,14 +431,12 @@ func GetStudentName(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Printf("Student Name: %s\n", name)
-	// Return the student's name in the response
 	fmt.Fprintf(w, "%s", name)
 }
 
 func GetStudentGithub(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	srn := r.URL.Query().Get("srn")
 
-	// Struct to hold the result of the JOIN query
 	type RepoResult struct {
 		GithubID    string `json:"github_id"`
 		RepoID      string `json:"repo_id"`
@@ -477,15 +446,12 @@ func GetStudentGithub(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	}
 
 	var results []RepoResult
-
-	// Run a JOIN query to retrieve github_id and associated repository details
 	res := db.Raw(`
 		SELECT g.github_id, r.repo_id, r.repo_name, r.language, r.description
 		FROM github g
 		JOIN repository r ON g.github_id = r.github_id
 		WHERE g.student_id = ?`, srn).Scan(&results)
 
-	// Error handling for query execution
 	if res.Error != nil {
 		if res.Error == gorm.ErrRecordNotFound {
 			http.Error(w, "Student not found", http.StatusNotFound)
@@ -495,13 +461,11 @@ func GetStudentGithub(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if any repositories were found
 	if len(results) == 0 {
 		http.Error(w, "No repositories found for this student", http.StatusNotFound)
 		return
 	}
 
-	// Extract GithubID and repositories for the response
 	response := struct {
 		GithubID     string `json:"github_id"`
 		Repositories []struct {
@@ -511,12 +475,11 @@ func GetStudentGithub(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 			Description string `json:"description"`
 		} `json:"repositories"`
 	}{
-		GithubID: results[0].GithubID, // GithubID is the same for all entries
+		GithubID: results[0].GithubID,
 	}
 
 	fmt.Printf("results fetched for githubID: %s", response.GithubID)
 
-	// Append repository details to the response
 	for _, result := range results {
 		response.Repositories = append(response.Repositories, struct {
 			RepoID      string `json:"repo_id"`
@@ -531,7 +494,6 @@ func GetStudentGithub(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	// Set Content-Type header and encode response as JSON
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -541,8 +503,6 @@ func GetStudentGithub(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 
 func GetLeetcode(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	srn := r.URL.Query().Get("srn")
-
-	// Step 1: Define a struct to hold the result of the JOIN query
 	type LeetcodeResult struct {
 		LeetcodeID string `json:"leetcode_id"`
 		Ranking    int    `json:"ranking"`
@@ -552,16 +512,12 @@ func GetLeetcode(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	}
 
 	var result LeetcodeResult
-
-	// Step 2: Run a JOIN query to fetch leetcode_id, ranking, and the counts of easy, medium, and hard problems
 	res := db.Raw(`
 		SELECT l.leetcode_id, l.ranking, p.no_easy, p.no_medium, p.no_hard
 		FROM leetcode l
 		JOIN problems p ON l.leetcode_id = p.leetcode_id
 		WHERE l.student_id = ?
 	`, srn).Scan(&result)
-
-	// Step 3: Error handling for query execution
 	if res.Error != nil {
 		if res.Error == gorm.ErrRecordNotFound {
 			http.Error(w, "Student not found", http.StatusNotFound)
@@ -570,11 +526,7 @@ func GetLeetcode(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-
-	// Step 4: Calculate the total problems solved
 	totalSolved := result.NoEasy + result.NoMedium + result.NoHard
-
-	// Step 5: Create a JSON response
 	response := struct {
 		LeetcodeID   string `json:"leetcode_id"`
 		Ranking      int    `json:"ranking"`
@@ -591,7 +543,6 @@ func GetLeetcode(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		TotalSolved:  totalSolved,
 	}
 
-	// Step 6: Set Content-Type header and encode response as JSON
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -601,8 +552,6 @@ func GetLeetcode(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 
 func GetResume(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	srn := r.URL.Query().Get("srn")
-
-	// Query to get the resume file path
 	var path string
 	result := db.Raw("SELECT resume FROM student WHERE student_id = ?", srn).Scan(&path)
 	if result.Error != nil {
@@ -616,8 +565,7 @@ func GetResume(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Printf("Resume Path: %s\n", path)
-
-	// Open the resume file
+	// open the resume file
 	file, err := os.Open(path)
 	if err != nil {
 		fmt.Printf("Could not open file: %v\n", err)
@@ -625,12 +573,8 @@ func GetResume(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer file.Close()
-
-	// Set headers to serve the PDF
 	w.Header().Set("Content-Type", "application/pdf")
 	w.Header().Set("Content-Disposition", "inline; filename=resume.pdf")
-
-	// Copy the file content to the response writer
 	_, err = io.Copy(w, file)
 	if err != nil {
 		fmt.Printf("Error while sending file: %v\n", err)
@@ -682,12 +626,10 @@ func GetMentorSessions(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 
 func GetLinkedin(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	srn := r.URL.Query().Get("srn")
-
 	if srn == "" {
 		http.Error(w, "Missing srn parameter", http.StatusBadRequest)
 		return
 	}
-
 	var linkedinLink string
 	err := db.Raw("SELECT linkedin FROM public.student WHERE student_id = ?", srn).Scan(&linkedinLink).Error
 	if err != nil {
@@ -698,16 +640,13 @@ func GetLinkedin(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-
 	if linkedinLink == "" {
 		http.Error(w, "LinkedIn link not available", http.StatusNotFound)
 		return
 	}
-
 	response := map[string]string{
 		"linkedin": linkedinLink,
 	}
-
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -729,15 +668,7 @@ func GetInfo(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		Age    int     `json:"age"`
 	}
 	err := db.Raw(`
-		SELECT
-			student_id AS srn,
-			gender,
-			cgpa,
-			email,
-			sem,
-			degree,
-			stream,
-			age
+		SELECT student_id AS srn, gender, cgpa, email, sem, degree, stream, age
 		FROM
 			public.student
 		WHERE
@@ -750,13 +681,11 @@ func GetInfo(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(studentInfo)
 }
 
 func GetLeetCodeStatistics(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
-	// Define the Statistics struct within the function
 	type Statistics struct {
 		Srn  string  `json:"srn"`
 		Name string  `json:"name"`
@@ -765,19 +694,16 @@ func GetLeetCodeStatistics(db *gorm.DB, w http.ResponseWriter, r *http.Request) 
 		Rank int     `json:"rank"`
 	}
 
-	// Retrieve the student ID (SRN) from the query parameters
 	srn := r.URL.Query().Get("srn")
 	if srn == "" {
 		http.Error(w, "Missing 'srn' query parameter", http.StatusBadRequest)
 		return
 	}
 
-	// Define a slice to store the top 15 students with their Leetcode rank and statistics
 	var stats []Statistics
-	// Variable to store the relative rank of the specified SRN
+
 	var relativeRank int
 
-	// Raw SQL to get the top 15 students based on Leetcode ranking
 	top15Query := `
 		SELECT s.student_id AS srn, s.name, s.cgpa, s.sem, l.ranking AS rank
 		FROM student s
@@ -785,33 +711,25 @@ func GetLeetCodeStatistics(db *gorm.DB, w http.ResponseWriter, r *http.Request) 
 		ORDER BY l.ranking
 		LIMIT 15
 	`
-
-	// Execute the query to fetch the top 15 students
 	if err := db.Raw(top15Query).Scan(&stats).Error; err != nil {
 		http.Error(w, "Failed to retrieve top 15 data", http.StatusInternalServerError)
 		return
 	}
-
-	// Always calculate the relative rank of the specified SRN
 	relativeRankQuery := `
 		SELECT COUNT(*) + 1 AS relative_rank
 		FROM leetcode l
 		WHERE l.ranking < (SELECT ranking FROM leetcode WHERE student_id = ?)
 	`
 
-	// Execute query to find the relative rank of the specified SRN
 	if err := db.Raw(relativeRankQuery, srn).Scan(&relativeRank).Error; err != nil {
 		http.Error(w, "Failed to retrieve relative rank", http.StatusInternalServerError)
 		return
 	}
-
-	// Prepare the final JSON structure
 	response := map[string]interface{}{
 		"leaderboard":   stats,
 		"relative_rank": relativeRank,
 	}
 
-	// Set the Content-Type to application/json and return the response
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, "Failed to encode response to JSON", http.StatusInternalServerError)
@@ -819,7 +737,6 @@ func GetLeetCodeStatistics(db *gorm.DB, w http.ResponseWriter, r *http.Request) 
 }
 
 func GetCGPAStatistics(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
-	// Define the Statistics struct within the function
 	type Statistics struct {
 		Srn  string  `json:"srn"`
 		Name string  `json:"name"`
@@ -828,19 +745,13 @@ func GetCGPAStatistics(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		Rank int     `json:"rank"`
 	}
 
-	// Retrieve the student ID (SRN) from the query parameters
 	srn := r.URL.Query().Get("srn")
 	if srn == "" {
 		http.Error(w, "Missing 'srn' query parameter", http.StatusBadRequest)
 		return
 	}
-
-	// Define a slice to store the top 15 students with their CGPA and statistics
 	var stats []Statistics
-	// Variable to store the relative rank of the specified SRN based on CGPA
 	var relativeRank int
-
-	// Raw SQL to get the top 15 students based on CGPA
 	top15Query := `
 		SELECT s.student_id AS srn, s.name, s.cgpa, s.sem, l.ranking AS rank
 		FROM student s
@@ -848,33 +759,23 @@ func GetCGPAStatistics(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		ORDER BY s.cgpa DESC
 		LIMIT 15
 	`
-
-	// Execute the query to fetch the top 15 students
 	if err := db.Raw(top15Query).Scan(&stats).Error; err != nil {
 		http.Error(w, "Failed to retrieve top 15 data", http.StatusInternalServerError)
 		return
 	}
-
-	// Calculate the relative rank of the specified SRN based on CGPA
 	relativeRankQuery := `
 		SELECT COUNT(*) + 1 AS relative_rank
 		FROM student
 		WHERE cgpa > (SELECT cgpa FROM student WHERE student_id = ?)
 	`
-
-	// Execute query to find the relative rank of the specified SRN based on CGPA
 	if err := db.Raw(relativeRankQuery, srn).Scan(&relativeRank).Error; err != nil {
 		http.Error(w, "Failed to retrieve relative rank", http.StatusInternalServerError)
 		return
 	}
-
-	// Prepare the final JSON structure
 	response := map[string]interface{}{
 		"leaderboard":   stats,
 		"relative_rank": relativeRank,
 	}
-
-	// Set the Content-Type to application/json and return the response
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, "Failed to encode response to JSON", http.StatusInternalServerError)
@@ -883,8 +784,6 @@ func GetCGPAStatistics(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 
 func deleteStudent(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	srn := r.URL.Query().Get("srn")
-
-	// Delete the student record; this will trigger the deletion of related records
 	if err := db.Exec("DELETE FROM student WHERE student_id = ?", srn).Error; err != nil {
 		http.Error(w, "Failed to delete student", http.StatusInternalServerError)
 		return
@@ -1046,12 +945,10 @@ func main() {
 	if err != nil {
 		panic("failed to connect database")
 	}
-
 	sqlDB, err := db.DB()
 	if err != nil {
 		panic("failed to get database handle")
 	}
-
 	err = sqlDB.Ping()
 	if err != nil {
 		panic("failed to ping database")
@@ -1212,7 +1109,6 @@ func main() {
 		}
 		log.Println("github inserted successfully")
 
-		// Rest of the repository processing code remains the same
 		fmt.Printf("Username: %s\n", profile.Username)
 		fmt.Printf("Bio: %s\n", profile.Bio)
 		fmt.Printf("Public Repositories: %s\n", profile.RepoCount)
@@ -1238,7 +1134,6 @@ func main() {
 		}
 	}
 
-	// Process LeetCode information
 	for _, student := range all_info {
 		if username, err := getUsernameFromURL(student.LeetcodeProfile); err == nil {
 			leetProfile := fetchLeetCodeProfileData(username)
@@ -1281,7 +1176,6 @@ func main() {
 		}
 	}
 
-	// Process mentor sessions
 	for _, m_info := range mentor_info {
 		m_id, err := fetchMentorID(db, m_info.MentorID)
 		if err != nil {
@@ -1304,10 +1198,8 @@ func main() {
 
 	fmt.Printf("!!!done setting up database!!!")
 
-	// HTTP handlers remain the same
 	r := mux.NewRouter()
 
-	// Define the routes and associate them with handler functions
 	r.HandleFunc("/student", func(w http.ResponseWriter, r *http.Request) {
 		GetStudentName(db, w, r)
 	}).Methods("GET", "POST")
@@ -1354,19 +1246,17 @@ func main() {
 		InsertStudent(db, w, r)
 	}).Methods("GET")
 
-	// Calculate elapsed time
 	elapsed := time.Since(start)
 	fmt.Printf("\nElapsed Time: %s\n", elapsed)
 
-	// Setup CORS with allowed methods, origins, and headers
 	corsHandler := handlers.CORS(
-		handlers.AllowedOrigins([]string{"*"}),                                                    // Allow all origins
-		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),              // Allow these HTTP methods
-		handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "X-Encrypted-AES-Key"}), // Allow these headers
-		handlers.AllowCredentials(),                                                               // Allow credentials if needed (e.g., cookies or authentication headers)
+		handlers.AllowedOrigins([]string{"*"}),
+		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
+		handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "X-Encrypted-AES-Key"}),
+		handlers.AllowCredentials(),
 	)(r)
 
-	// Start the server on port 8000
+	// start the server on port 8000
 	fmt.Println("Server is running on port 8000")
 	http.ListenAndServe(":8000", corsHandler)
 }
