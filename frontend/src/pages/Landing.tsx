@@ -35,7 +35,7 @@ export const Landing = () => {
     const [formDegree, setFormDegree] = useState('');
     const [formStream, setFormStream] = useState('');
     const [formGender, setFormGender] = useState('');
-
+    const [formResume,setFormResume]=useState('');
     const [formEmail, setFormEmail] = useState('');
     const navigate = useNavigate();
 
@@ -62,8 +62,9 @@ export const Landing = () => {
         formStream: false,
         formGender: false,
         formEmail: false,
+        formResume:false,
     });
-    const handleFormSubmit = () => {
+    const handleFormSubmit = async () => {
         // Validate each field
         const errors = {
             formName: formName === '',
@@ -80,16 +81,25 @@ export const Landing = () => {
             formStream: formStream === '',
             formGender: formGender === '',
             formEmail: formEmail === '',
+            formResume:formResume === '',
+
         };
-
+    
         setInputErrors(errors);
-
+    
         const hasErrors = Object.values(errors).some(error => error);
         if (hasErrors) return;
-
-        console.log("Form submitted successfully");
-
-        setIsFormOpen(false); // Close the form after successful submission
+    
+        // Prepare data for the API call
+        const apiUrl = `http://100.102.21.101:8000/insertStudent?name=${encodeURIComponent(formName)}&srn=${encodeURIComponent(formSrn)}&cgpa=${encodeURIComponent(formCgpa)}&sem=${encodeURIComponent(formsem)}&age=${encodeURIComponent(formAge)}&email=${encodeURIComponent(formEmail)}&phone_num=${encodeURIComponent(formPhoneNo)}&degree=${encodeURIComponent(formDegree)}&stream=${encodeURIComponent(formStream)}&gender=${encodeURIComponent(formGender)}&git_link=${encodeURIComponent(formGithubLink)}&leet_link=${encodeURIComponent(formLeetcodeLink)}&men_name=${encodeURIComponent(formMentorName)}&resume=${encodeURIComponent(formResume)}&linkedin_link=${encodeURIComponent(formLinkedinLink)}`;
+    
+        try {
+            const response = await axios.get(apiUrl);
+            console.log('Response:', response.data);
+            setIsFormOpen(false); // Close the form after successful submission
+        } catch (error) {
+            console.error('Error submitting form:', error);
+        }
     };
     const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setPasswordValue(e.target.value);
@@ -200,6 +210,8 @@ export const Landing = () => {
                 <input type="text" placeholder="Stream" value={formStream} onChange={(e) => setFormStream(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formStream ? 'border-red-500' : 'border-gray-300'}`} />
                 <input type="text" placeholder="Gender" value={formGender} onChange={(e) => setFormGender(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formGender ? 'border-red-500' : 'border-gray-300'}`} />
                 <input type="email" placeholder="Email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formEmail ? 'border-red-500' : 'border-gray-300'}`} />
+                <input type="text" placeholder="Resume Drive Link" value={formResume} onChange={(e) => setFormResume(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formResume ? 'border-red-500' : 'border-gray-300'}`} />
+
             </div>
 
             <div className="flex items-center justify-between mt-6">
