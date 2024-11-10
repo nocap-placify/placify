@@ -114,14 +114,14 @@ export const Landing = () => {
             setIsInputValid(true);
             setShowShakeAnimation(false);
             try {
-                const { encryptedAESKey, aesKey } = await getEncryptedAESKey();
+                // const { encryptedAESKey, aesKey } = await getEncryptedAESKey();
 
             // AES encrypt the password
-            const aesCipher = forge.cipher.createCipher("AES-CFB", aesKey);
-            const iv = forge.random.getBytesSync(16);
-            aesCipher.start({ iv });
-            aesCipher.update(forge.util.createBuffer(passwordValue));
-            aesCipher.finish();
+            // const aesCipher = forge.cipher.createCipher("AES-CFB", aesKey);
+            // const iv = forge.random.getBytesSync(16);
+            // aesCipher.start({ iv });
+            // aesCipher.update(forge.util.createBuffer(passwordValue));
+            // aesCipher.finish();
 
             const encryptedPassword = forge.util.encode64(passwordValue);
             console.log(encryptedPassword)
