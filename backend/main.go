@@ -817,6 +817,9 @@ func InsertStudent(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	email := r.URL.Query().Get("email")
 	resume := r.URL.Query().Get("resume")
 
+	fmt.Printf("Name: %s\nSRN: %s\nSemester: %s\nGitHub Link: %s\nLeetCode Link: %s\nMentor Name: %s\nLinkedIn Link: %s\nCGPA: %s\nAge: %s\nPhone Number: %s\nDegree: %s\nStream: %s\nGender: %s\nEmail: %s\nResume Link: %s\n",
+		name, srn, sem, git_link, leet_link, men_name, linkedin_link, cgpa, age, phone_num, degree, stream, gender, email, resume)
+
 	username, err := getUsernameFromURL(git_link)
 	token := ""
 	profile := fetchProfileData(username, token)
