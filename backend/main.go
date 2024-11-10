@@ -865,6 +865,7 @@ func InsertStudent(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 
 	err = insertStudent(db, student)
 	if err != nil {
+		http.Error(w, "Couldn't insert student", http.StatusInternalServerError)
 		log.Printf("failed to insert student:", err)
 	}
 	log.Println("Student inserted successfully")
