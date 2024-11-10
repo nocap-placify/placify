@@ -190,7 +190,7 @@ func fetchMentorID(db *gorm.DB, name string) (int, error) {
 	}
 
 	var mentor Mentor
-	err := db.Raw("SELECT * FROM mentors WHERE mentor_name = ? LIMIT 1", name).Scan(&mentor).Error
+	err := db.Raw("SELECT * FROM mentor WHERE mentor_name = ? LIMIT 1", name).Scan(&mentor).Error
 	if err != nil {
 		return 0, err
 	}
