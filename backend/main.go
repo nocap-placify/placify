@@ -832,8 +832,8 @@ func InsertStudent(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	}
 
 	mentorid, err := fetchMentorID(db, men_name)
-
-	cmd := exec.Command("gdown", "--fuzzy", resume)
+	summ := srn + "_Resume.pdf"
+	cmd := exec.Command("gdown", "--fuzzy", resume, "-O", summ)
 
 	cmd.Dir = "/home/suraj/Documents/Resumes"
 
