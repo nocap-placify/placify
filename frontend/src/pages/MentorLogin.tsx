@@ -33,7 +33,7 @@ export const MentorLogin = () => {
                 return;
             }
 
-            navigate('/mentor-dashboard', { state: { mentorId, mentorName } });
+            navigate('/mentor-session', { state: { mentorId, mentorName } });
         } catch (error) {
             setShowShakeAnimation(true);
             setTimeout(() => setShowShakeAnimation(false), 400);
