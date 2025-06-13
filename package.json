@@ -1,0 +1,12 @@
+{
+  "name": "placify",
+  "version": "1.0.0",
+  "description": "#Installation and running",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

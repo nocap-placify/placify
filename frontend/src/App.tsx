@@ -2,7 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Landing } from './pages/Landing';
 import { Dashboard } from './pages/Dashboard';
-import { MentorLogin} from './pages/MentorLogin';import Mentor_session from './pages/Mentor_session';
+import { MentorLogin} from './pages/MentorLogin';
+import Mentor_session from './pages/Mentor_session';
 
 const App = () => {
   return (
