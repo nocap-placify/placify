@@ -101,7 +101,7 @@ export const MentorLogin = () => {
             <div className={`absolute inset-0 ${isInputActive ? 'backdrop-blur-lg' : ''}`}>
                 <div className={`relative z-10 flex min-h-screen flex-col items-center justify-center px-4 transition-opacity duration-1000 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
  
-                    <h1 className="typewriter font-bold text-white" style={{ fontSize: '3.5rem', transform: 'translateY(-60px)' }}>Placify</h1>
+                    <h1 className="typewriter font-bold text-white" style={{ fontSize: '3.5rem', transform: 'translateY(-60px)' }}>Mentor Login</h1>
 
                     {/* Mentor ID Input */}
                     <div className="mt-8 relative w-80">
