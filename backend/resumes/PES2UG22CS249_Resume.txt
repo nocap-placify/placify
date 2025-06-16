@@ -1,0 +1,62 @@
+KADAPA BABA SURAJ
++91 6360941045 ⋄ Bangalore, KA
+surajkadapa103@gmail.com ⋄ ¯ in/surajkadapa ⋄  github.com/surajkadapa ⋄  surajkadapa.github.io
+EDUCATION
+B.Tech in Computer Science Engineering, PES University
+GPA: 8.87, 3 time Prof. CNR Rao Scholarship, 2 time Distinction Award
+EXPERIENCE
+Aug 2022 - May 2026
+Teaching Assistant Digital Design and Computer Organization | Dept. of Computer Science Aug 2024 - Dec 2024
+• Aligned course content with new syllabus and helped curate slides and AV summaries.
+Technical Mentor HackerSpace(HSP)
+Technical Member Association of Computing Machinery(ACM)
+Nov 2022 - Present
+Oct 2022 - Present
+SKILLS
+Languages
+C, C++, Python, SQL
+Technologies
+Hadoop, Arduino, RISC-V, Raspberry Pi, Spark, PyTorch, Kafka, Fluentd
+Tools
+Make, Git, GDB, QEMU, Linux, Docker, Tailscale, PostgreSQL, VirtualBox, KVM
+FEATURED PROJECTS
+Kryptonite C, RISC-V, RISC-V Assembly
+GitHub
+• Created an Operating System for the 32-bit RISC-V ISA, using the RISC-V OpenSBI for communication between
+the Operating System and QEMU. Wrote a linker script from scratch for defining the memory layout.
+• Implemented standard library functions such as printf, memcpy, memset, strncpy, and strncmp from scratch.
+• Designed and implemented kernel exception handling, panic mechanisms, dynamic memory allocation, context
+switching, process creation and a paging system from scratch.
+MemStream C, Python, Docker, Kafka, Elasticsearch, Fluentd, Kibana, Makefile
+GitHub
+• Built a shared key-value pair memory caching system with POSIX SHM (shared memory), pthread read-write
+locks and a thread-safe memory management scheme from scratch.
+• Developed a distributed logging framework with Apache Kafka and Elasticsearch in Docker containers, in-
+tegrating Kibana for real-time analytics and visualization, adding real-time health monitoring via heartbeat
+mechanisms.
+• Engineered a Docker-containerized microservices ecosystem (Read, Write, Analytics) using Python-C interop-
+erability with ctypes and real-time performance monitoring for containerized services.
+Quarantine C, Linux, Makefile
+GitHub
+• Developed a lightweight containerization system using Linux namespaces (UTS, User, Mount and PID) and cgroups
+for process isolation.
+• Implemented resource control mechanisms to limit CPU and memory usage via cgroups.
+• Integrated an Alpine-based root filesystem with a custom script and used chroot for environment isolation.
+GitHub
+Placify GO, PostgreSQL, TypeScript
+• Created a full-stack application for a comprehensive view of a student’s activities beyond the classroom.
+• Written the complete backend using GoLang, and using the gorm module for database operations.
+• Hosted a PostgreSQL database on a personal server mimicking a real world scenario with API calls from the
+frontend to fetch the required data.
+GitHub
+BitFusion1.0 C, Makefile
+• Designed and developed a 16-bit process virtual machine based on the Little Computer-3 architecture.
+• Implemented instruction decoding, execution, and memory management features.
+• Written completely using the standard C library without any external libraries.
+ACHIEVEMENTS
+Best Implementation Override, GDSC ’22
+First Place Ingenius 11.0
+Contributor Hacktober Fest
+Oct 2022
+Apr 2023
+Oct 2022

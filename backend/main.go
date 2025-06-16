@@ -31,6 +31,7 @@ import (
 	"github.com/jszwec/csvutil"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"backend/resume"
 )
 
 // LeetCodeProfile stores profile information specific to LeetCode
@@ -90,6 +91,14 @@ type Mentor_Session_DB struct {
 	Date      string `gorm:"column:date"`
 	Advice    string `gorm:"advice"`
 }
+
+type MentorSession struct {
+	MentorId  int    `json:"mentorId"`
+	StudentId string `json:"studentId"`
+	Date      string `json:"date"`
+	Advice    string `json:"advice"`
+}
+
 
 type Student struct {
 	StudentID string    `gorm:"primaryKey;column:student_id"`
@@ -433,6 +442,7 @@ func GetStudentName(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Printf("Student Name: %s\n", name)
 	fmt.Fprintf(w, "%s", name)
+	resume.StartResumeServer(srn)
 }
 
 func GetStudentGithub(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
@@ -949,6 +959,57 @@ func InsertStudent(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 
 }
 
+func MentorLogin(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+	mentorId := r.URL.Query().Get("mentorId")
+	password := r.URL.Query().Get("password")
+
+	// Hardcoded password check (no hashing for now)
+	const expectedPassword = "testing123"
+
+	if password != expectedPassword {
+		http.Error(w, "Incorrect password", http.StatusForbidden)
+		return
+	}
+
+	var mentorName string
+	err := db.Raw("SELECT mentor_name FROM mentor WHERE mentor_id = ?", mentorId).Row().Scan(&mentorName)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			http.Error(w, "Mentor not found", http.StatusNotFound)
+		} else {
+			log.Printf("Database error: %v\n", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	fmt.Fprintf(w, "%s", mentorName) // return mentor name as plain text
+}
+
+func InsertMentorSession(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+	var session MentorSession
+
+	// Decode JSON from request body
+	if err := json.NewDecoder(r.Body).Decode(&session); err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	// Raw SQL Insert (avoid GORM automations as per your request)
+	sql := `INSERT INTO mentor_sessions (mentor_id, student_id, date, advice) VALUES (?, ?, ?, ?)`
+
+	// Execute the insert
+	if err := db.Exec(sql, session.MentorId, session.StudentId, session.Date, session.Advice).Error; err != nil {
+		log.Printf("Error inserting mentor session: %v\n", err)
+		http.Error(w, "Failed to insert session", http.StatusInternalServerError)
+		return
+	}
+
+	// Success response
+	w.WriteHeader(http.StatusCreated)
+	fmt.Fprintf(w, "Mentor session inserted successfully")
+}
+
 func main() {
 	start := time.Now()
 
@@ -1251,6 +1312,14 @@ func main() {
 	r.HandleFunc("/deleteStudent", func(w http.ResponseWriter, r *http.Request) {
 		deleteStudent(db, w, r)
 	}).Methods("GET")
+
+	r.HandleFunc("/mentorLogin", func(w http.ResponseWriter, r *http.Request) {
+		MentorLogin(db, w, r)
+	}).Methods("GET")
+
+	r.HandleFunc("/addMentorSession", func(w http.ResponseWriter, r *http.Request) {
+		InsertMentorSession(db, w, r)
+	}).Methods("POST")
 
 	// r.HandleFunc("/getPublicKey", servePublicKey).Methods("GET")
 
