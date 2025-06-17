@@ -101,7 +101,7 @@ export const MentorLogin = () => {
     }, []);
 
     return (
-        <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-black to-purple-900">
+        <div className="relative min-h-screen overflow-hidden bg-black">
             {/* Enhanced Background Animation */}
             <div className="absolute inset-0 overflow-hidden">
                 {/* Animated Grid */}

@@ -128,7 +128,7 @@ export const Landing = () => {
     }, []);
 
     return (
-        <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-black to-purple-900">
+        <div className="relative min-h-screen overflow-hidden bg-black">
             {/* Form Modal */}
 
             {/* Enhanced Background Animation */}
