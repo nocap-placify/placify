@@ -77,7 +77,14 @@ interface Student {
   srn: string;
   name: string;
 }
+declare global {
+  interface Window {
+    setSelectedStats: React.Dispatch<React.SetStateAction<any>>;
+  }
+}
 export const Dashboard = () => {
+  const [srn, setSrn] = useState('');
+  const [score, setScore] = useState<string | null>(null);
   const [mousePosition, setMousePosition] = useState<MousePosition>({ x: 0, y: 0 });
   const [isVisible, setIsVisible] = useState(false);
   const [scale, setScale] = useState(1);
@@ -104,15 +111,12 @@ export const Dashboard = () => {
   const [selectedStats, setSelectedStats] = useState('cgpa');
   const [cgpaData, setCgpaData] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [isResumeOpen, setIsResumeOpen] = useState(false);
   // State to track footer visibility
   const [showFooter, setShowFooter] = useState(true);
-  // const [showModal, setShowModal] = useState(false);
-  // const [modalContent, setModalContent] = useState(null);
 
   useEffect(() => {
-    // Log whenever selectedStats is updated
     console.log('Selected Stats changed:', selectedStats);
     window.setSelectedStats = setSelectedStats; // Expose setSelectedStats function to global scope
   }, [selectedStats]);
@@ -169,6 +173,21 @@ export const Dashboard = () => {
       console.error("LinkedIn URL not available");
     }
   };
+  const fetchScore = async () => {
+    try {
+      const res = await fetch(`http://100.102.21.101:8000/score?srn=${studentSRN}`);
+      if (!res.ok) {
+        throw new Error(`Error: ${res.status}`);
+      }
+      const data = await res.json();
+      setScore(data.score);
+      setError(null);
+    } catch (err) {
+      setError('Failed to fetch score');
+      setScore(null);
+    }
+  };
+
   const fetchData = async (srn: string) => {
     setIsGithubLoading(true);
     try {
@@ -235,16 +254,6 @@ export const Dashboard = () => {
     navigate('/landing');
   };
 
-
-
-  // const handleLinkedInClick = () => {
-  //   if (linkedinUrl) {
-  //     window.open(linkedinUrl, "_blank"); // Open LinkedIn URL in a new tab
-  //   } else {
-  //     console.error("LinkedIn URL not available");
-  //   }
-  // };
-  // Function to fetch CGPA rank data
 const fetchCgpaStats = async (srn) => {
   try {
     const response = await axios.get(`http://100.102.21.101:8000/getCGPAStatistics?srn=${srn}`);
@@ -258,7 +267,6 @@ const fetchCgpaStats = async (srn) => {
     return null;
   }
 };
-
 // Function to fetch LeetCode rank data
 const fetchLeetcodeStats = async (srn) => {
   try {
@@ -386,8 +394,6 @@ const handleStatsCardClick = async (srn) => {
     );
   }
 };
-
-
 
 // Open modal with loading spinner
 const openModalWithLoading = () => {
@@ -776,6 +782,169 @@ const handleResumeClick2 = () => {
                 </svg>
             </button>
 
+            // Replace the SRN Score Lookup Section with this updated version
+            <>
+    {/* SRN Score Lookup Section */}
+    <div className="absolute bottom-6 left-6 z-20">
+    <div className="flex items-center gap-3 mb-4">
+        <button 
+            onClick={fetchScore} 
+            className="relative px-6 py-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold text-sm overflow-hidden border-2 border-blue-400/30 shadow-lg transition-all duration-300 hover:shadow-blue-500/50 hover:scale-110 hover:border-blue-300/50 group"
+            style={{
+                boxShadow: '0 0 20px rgba(59,130,246,0.3), 0 0 40px rgba(168,85,247,0.2)',
+            }}
+        >
+            <span className="relative z-10 flex items-center gap-2">
+                {/* <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg> */}
+                Get Score
+            </span>
+            {/* Animated background glow */}
+            <span
+                className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-30 transition-opacity duration-300"
+                style={{
+                    background: 'radial-gradient(circle at center, rgba(255,255,255,0.8), transparent 70%)',
+                }}
+            />
+            {/* Shimmer effect */}
+            <span className="absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
+        </button>
+    </div>
+
+        {/* Error Message */}
+        {error && (
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="mt-4 p-4 bg-red-500/20 border border-red-500/30 rounded-lg backdrop-blur-sm"
+            >
+                <p className="text-red-300 font-medium text-center">{error}</p>
+            </motion.div>
+        )}
+    </div>
+
+    {/* Score Card Modal with Background Overlay */}
+    {score && (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-gray-800 bg-opacity-90 flex items-center justify-center p-4"
+            style={{ zIndex: 1000 }}
+        >
+            <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: -20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: -20 }}
+                className="w-[400px] relative"
+            >
+                <div
+                    className="relative p-6 rounded-2xl transition-all duration-300 shadow-lg"
+                    style={{
+                        backgroundColor: "rgba(255, 255, 255, 0.95)",
+                        border: `2px solid ${
+                            parseFloat(score) >= 8 ? "#10b981" :
+                            parseFloat(score) >= 6 ? "#f59e0b" :
+                            parseFloat(score) >= 4 ? "#f97316" :
+                            "#ef4444"
+                        }`,
+                        boxShadow: `0 0 20px ${
+                            parseFloat(score) >= 8 ? "rgba(16, 185, 129, 0.2)" :
+                            parseFloat(score) >= 6 ? "rgba(245, 158, 11, 0.2)" :
+                            parseFloat(score) >= 4 ? "rgba(249, 115, 22, 0.2)" :
+                            "rgba(239, 68, 68, 0.2)"
+                        }`,
+                        backdropFilter: 'blur(10px)',
+                    }}
+                >
+                    <button
+                        onClick={() => setScore(null)}
+                        className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-xl font-bold"
+                    >
+                        ✖
+                    </button>
+
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                            <div
+                                className="p-2 rounded-full"
+                                style={{
+                                    backgroundColor: parseFloat(score) >= 8 ? "#10b981" :
+                                                    parseFloat(score) >= 6 ? "#f59e0b" :
+                                                    parseFloat(score) >= 4 ? "#f97316" :
+                                                    "#ef4444",
+                                    color: "white"
+                                }}
+                            >
+                                {parseFloat(score) >= 8 ? "🏆" :
+                                 parseFloat(score) >= 6 ? "📈" :
+                                 parseFloat(score) >= 4 ? "📊" : "📉"}
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-gray-800">Academic Score</h3>
+                                <p className="text-sm text-gray-600">SRN: {srn}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center justify-center">
+                        <div className="relative">
+                            <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 36 36">
+                                <path
+                                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                    fill="none"
+                                    stroke="rgba(0,0,0,0.1)"
+                                    strokeWidth="2"
+                                />
+                                <path
+                                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                    fill="none"
+                                    stroke={
+                                        parseFloat(score) >= 8 ? "#10b981" :
+                                        parseFloat(score) >= 6 ? "#f59e0b" :
+                                        parseFloat(score) >= 4 ? "#f97316" :
+                                        "#ef4444"
+                                    }
+                                    strokeWidth="3"
+                                    strokeDasharray={`${(parseFloat(score) / 10) * 100}, 100`}
+                                    strokeLinecap="round"
+                                    className="transition-all duration-1000 ease-out"
+                                    style={{ filter: 'drop-shadow(0 0 4px currentColor)' }}
+                                />
+                            </svg>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                <span className="text-2xl font-bold text-gray-800">{score}</span>
+                                <span className="text-xs text-gray-600">out of 10</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-4 text-center">
+                        <span
+                            className="px-3 py-1 rounded-full text-sm font-medium"
+                            style={{
+                                backgroundColor: parseFloat(score) >= 8 ? "#dcfce7" :
+                                                 parseFloat(score) >= 6 ? "#fef3c7" :
+                                                 parseFloat(score) >= 4 ? "#fed7aa" :
+                                                 "#fecaca",
+                                color: parseFloat(score) >= 8 ? "#166534" :
+                                      parseFloat(score) >= 6 ? "#92400e" :
+                                      parseFloat(score) >= 4 ? "#c2410c" :
+                                      "#dc2626"
+                            }}
+                        >
+                            {parseFloat(score) >= 8 ? "Excellent" :
+                             parseFloat(score) >= 6 ? "Good" :
+                             parseFloat(score) >= 4 ? "Average" :
+                             "Needs Improvement"}
+                        </span>
+                    </div>
+                </div>
+            </motion.div>
+        </motion.div>
+    )}
+</>
 
         <AnimatePresence>
         <motion.div
@@ -1081,7 +1250,7 @@ const handleResumeClick2 = () => {
         boxShadow: '0 0 20px rgba(59,130,246,0.4), 0 0 40px rgba(59,130,246,0.3)',
       }}
     >
-      <span className="z-10 relative">💬 Chatbot Assistant</span>
+      <span className="z-10 relative"> Chatbot Assistant</span>
       <span
         className="absolute inset-0 rounded-full opacity-30 blur-xl"
         style={{
