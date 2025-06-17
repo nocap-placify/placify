@@ -1,4 +1,3 @@
-// ... (imports remain unchanged)
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -20,6 +19,7 @@ export const Landing = () => {
     const [passwordValue, setPasswordValue] = useState('');
     const [isInputValid, setIsInputValid] = useState(true);
     const [showShakeAnimation, setShowShakeAnimation] = useState(false);
+    const [showWrongAnimation, setShowWrongAnimation] = useState(false);
     const [scale, setScale] = useState(1);
     const [studentName, setStudentName] = useState('');
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -38,6 +38,7 @@ export const Landing = () => {
     const [formGender, setFormGender] = useState('');
     const [formResume, setFormResume] = useState('');
     const [formEmail, setFormEmail] = useState('');
+    const [hoveredButton, setHoveredButton] = useState(false);
     const navigate = useNavigate();
 
     const inputRef = useRef<HTMLInputElement>(null);
@@ -48,64 +49,26 @@ export const Landing = () => {
         const value = e.target.value.toUpperCase();
         setInputValue(value);
     };
-
-    const [inputErrors, setInputErrors] = useState({
-        formName: false,
-        formSrn: false,
-        formsem: false,
-        formGithubLink: false,
-        formLeetcodeLink: false,
-        formMentorName: false,
-        formLinkedinLink: false,
-        formCgpa: false,
-        formAge: false,
-        formPhoneNo: false,
-        formDegree: false,
-        formStream: false,
-        formGender: false,
-        formEmail: false,
-        formResume: false,
-    });
-
-    const handleFormSubmit = async () => {
-        // Validate each field
-        const errors = {
-            formName: formName === '',
-            formSrn: formSrn === '',
-            formsem: formsem === '',
-            formGithubLink: formGithubLink === '',
-            formLeetcodeLink: formLeetcodeLink === '',
-            formMentorName: formMentorName === '',
-            formLinkedinLink: formLinkedinLink === '',
-            formCgpa: formCgpa === '',
-            formAge: formAge === '',
-            formPhoneNo: formPhoneNo === '',
-            formDegree: formDegree === '',
-            formStream: formStream === '',
-            formGender: formGender === '',
-            formEmail: formEmail === '',
-            formResume: formResume === '',
-        };
-    
-        setInputErrors(errors);
-    
-        const hasErrors = Object.values(errors).some(error => error);
-        if (hasErrors) return;
-    
-        // Prepare data for the API call
-        const apiUrl = `http://100.102.21.101:8000/insertStudent?name=${encodeURIComponent(formName)}&srn=${encodeURIComponent(formSrn)}&cgpa=${encodeURIComponent(formCgpa)}&sem=${encodeURIComponent(formsem)}&age=${encodeURIComponent(formAge)}&email=${encodeURIComponent(formEmail)}&phone_num=${encodeURIComponent(formPhoneNo)}&degree=${encodeURIComponent(formDegree)}&stream=${encodeURIComponent(formStream)}&gender=${encodeURIComponent(formGender)}&git_link=${encodeURIComponent(formGithubLink)}&leet_link=${encodeURIComponent(formLeetcodeLink)}&men_name=${encodeURIComponent(formMentorName)}&resume=${encodeURIComponent(formResume)}&linkedin_link=${encodeURIComponent(formLinkedinLink)}`;
-    
-        try {
-            const response = await axios.get(apiUrl);
-            console.log('Response:', response.data);
-            setIsFormOpen(false); // Close the form after successful submission
-        } catch (error) {
-            console.error('Error submitting form:', error);
-        }
+    const handleBackToHome = () => {
+        navigate('/');
     };
 
     const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setPasswordValue(e.target.value);
+    };
+
+    const getEncryptedAESKey = async (): Promise<{ encryptedAESKey: string, aesKey: Uint8Array }> => {
+        const response = await fetch("http://100.102.21.101:8000/getPublicKey");
+        const publicKeyPem = await response.text();
+
+        const rsaPublicKey = forge.pki.publicKeyFromPem(publicKeyPem);
+        const aesKey = forge.random.getBytesSync(16); // 128-bit AES key
+
+        const encryptedAESKey = rsaPublicKey.encrypt(aesKey, "RSA-OAEP");
+        return {
+            encryptedAESKey: forge.util.encode64(encryptedAESKey),
+            aesKey: forge.util.createBuffer(aesKey).toHex(),
+        };
     };
 
     const handleSubmit = async () => {
@@ -114,18 +77,19 @@ export const Landing = () => {
             setShowShakeAnimation(false);
             try {
                 const encryptedPassword = forge.util.encode64(passwordValue);
-                const response = await axios.get(`http://100.102.21.101:8000/student?srn=${inputValue}&password=${encryptedPassword}`);
+                console.log(encryptedPassword)
+                const response = await axios.get(`http://100.102.21.101:8000/student?srn=${inputValue}&password=${encryptedPassword}`, {
+                });
                 const studentName = response.data;
-
+                console.log(studentName)
                 if (!studentName) {
                     setShowShakeAnimation(true);
                     setTimeout(() => setShowShakeAnimation(false), 400);
                     return;
                 }
-
                 setStudentName(studentName);
                 navigate('/dashboard', { state: { studentName, srn: inputValue } });
-            } catch (error) {
+            } catch (error: any) {
                 setShowShakeAnimation(true);
                 setTimeout(() => setShowShakeAnimation(false), 400);
             }
@@ -140,9 +104,6 @@ export const Landing = () => {
         if (e.key === 'Enter') {
             handleSubmit();
         }
-    };
-    const handleBackToHome = () => {
-        navigate('/');
     };
 
     useEffect(() => {
@@ -167,53 +128,15 @@ export const Landing = () => {
     }, []);
 
     return (
-        <div className="relative min-h-screen overflow-hidden bg-black">
+        <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-black to-purple-900">
             {/* Form Modal */}
-            {isFormOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40">
-                    <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full max-h-[80vh] overflow-y-auto">
-                        <h2 className="text-xl font-semibold mb-6 text-center text-gray-700">Student Details</h2>
 
-                        <div className="space-y-4">
-                            <input type="text" placeholder="Name" value={formName} onChange={(e) => setFormName(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formName ? 'border-red-500' : 'border-gray-300'}`} />
-                            <input type="text" placeholder="SRN" value={formSrn} onChange={(e) => setFormsrn(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formSrn ? 'border-red-500' : 'border-gray-300'}`} />
-                            <input type="text" placeholder="Semester" value={formsem} onChange={(e) => setFormsem(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formsem ? 'border-red-500' : 'border-gray-300'}`} />
-                            <input type="text" placeholder="GitHub Link" value={formGithubLink} onChange={(e) => setFormG_profile(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formGithubLink ? 'border-red-500' : 'border-gray-300'}`} />
-                            <input type="text" placeholder="LeetCode Link" value={formLeetcodeLink} onChange={(e) => setFormL_profile(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formLeetcodeLink ? 'border-red-500' : 'border-gray-300'}`} />
-                            <input type="text" placeholder="Mentor Name" value={formMentorName} onChange={(e) => setFormMentorName(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formMentorName ? 'border-red-500' : 'border-gray-300'}`} />
-                            <input type="text" placeholder="LinkedIn Link" value={formLinkedinLink} onChange={(e) => setFormLinkedin(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formLinkedinLink ? 'border-red-500' : 'border-gray-300'}`} />
-                            <input type="text" placeholder="CGPA" value={formCgpa} onChange={(e) => setFormcgpa(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formCgpa ? 'border-red-500' : 'border-gray-300'}`} />
-                            <input type="number" placeholder="Age" value={formAge} onChange={(e) => setFormage(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formAge ? 'border-red-500' : 'border-gray-300'}`} />
-                            <input type="text" placeholder="Phone No" value={formPhoneNo} onChange={(e) => setFormPh_no(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formPhoneNo ? 'border-red-500' : 'border-gray-300'}`} />
-                            <input type="text" placeholder="Degree" value={formDegree} onChange={(e) => setFormDegree(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formDegree ? 'border-red-500' : 'border-gray-300'}`} />
-                            <input type="text" placeholder="Stream" value={formStream} onChange={(e) => setFormStream(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formStream ? 'border-red-500' : 'border-gray-300'}`} />
-                            <input type="text" placeholder="Gender" value={formGender} onChange={(e) => setFormGender(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formGender ? 'border-red-500' : 'border-gray-300'}`} />
-                            <input type="email" placeholder="Email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formEmail ? 'border-red-500' : 'border-gray-300'}`} />
-                            <input type="text" placeholder="Resume Drive Link" value={formResume} onChange={(e) => setFormResume(e.target.value)} className={`w-full p-3 border rounded-lg ${inputErrors.formResume ? 'border-red-500' : 'border-gray-300'}`} />
-                        </div>
-
-                        <div className="flex items-center justify-between mt-6">
-                            <button
-                                onClick={handleFormSubmit}
-                                className="w-full bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-600 transition duration-200"
-                            >
-                                Submit
-                            </button>
-                            <button
-                                onClick={() => setIsFormOpen(false)}
-                                className="w-full bg-gray-300 text-gray-700 p-3 rounded-lg hover:bg-gray-400 transition duration-200 ml-4"
-                            >
-                                Close
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
+            {/* Enhanced Background Animation */}
             <div className="absolute inset-0 overflow-hidden">
-                {/* Background animations */}
-                <div className="absolute inset-0 opacity-10">
-                    <div className="absolute h-full w-full animate-wave"
+                {/* Animated Grid */}
+                <div className="absolute inset-0 opacity-20">
+                    <div
+                        className="absolute h-full w-full animate-wave"
                         style={{
                             backgroundImage: 'linear-gradient(to right, rgba(168, 85, 247, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(168, 85, 247, 0.3) 1px, transparent 1px)',
                             backgroundSize: '60px 60px',
@@ -280,194 +203,201 @@ export const Landing = () => {
             />
 
                 <div className={`relative z-10 flex min-h-screen flex-col items-center justify-center px-4 transition-opacity duration-1000 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
-                    <button
-                        onClick={() => setIsFormOpen(true)}
-                        className="absolute top-4 right-4 w-12 h-12 bg-purple-500 text-white rounded-full flex items-center justify-center z-30 hover:bg-purple-600 transition-colors duration-300 shadow-lg"
-                    >
-                        <img
-                            src={user}
-                            alt="User"
-                            className="w-8 h-8 rounded-full"
-                        />
-                    </button>
+                    
 
-                    <h1
-                        className="typewriter font-bold text-white"
-                        style={{
-                            fontSize: '3.5rem',
-                            transform: 'translateY(-60px)',
-                        }}
-                    >Placify</h1>
+                    {/* Header Section */}
+                <div className="text-center space-y-6 mb-12">
+                    <div className="flex items-center justify-center space-x-3 mb-4">
+                        
+                        <h1 className="text-6xl md:text-7xl font-bold text-white">
+                    <Typewriter
+                    words={['Recruiter Login']}
+                    loop={1}
+                    cursor
+                    cursorStyle="|"
+                    typeSpeed={120}
+                    deleteSpeed={50}
+                    delaySpeed={1000}
+                    />
+                </h1>
+                    </div>
+                    <p className="text-lg text-gray-300 max-w-md mx-auto">
+                        Access your academic portal with your SRN
+                    </p>
+                    <div className="w-16 h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto rounded-full"></div>
+                </div>
 
                     {/* Input with Arrow Button */}
-                    <div className="mt-8 relative w-80">
-                        <input
-                            type="text"
-                            ref={inputRef}
-                            value={inputValue}
-                            onChange={handleInputChange}
-                            onKeyDown={handleKeyDown}
-                            onFocus={() => setIsInputActive(true)}
-                            onBlur={() => setIsInputActive(false)}
-                            className={`w-full p-4 rounded-full bg-white bg-opacity-20 text-white text-lg pl-5 pr-16 focus:outline-none ${showShakeAnimation ? 'shake' : ''}`}
-                            placeholder="Enter your SRN"
-                            style={{
-                                border: showShakeAnimation || !isInputValid ? '1px solid red' : '1px solid rgba(255, 255, 255, 0.5)',
-                                transition: 'border-color 0.3s ease',
-                            }}
-                        />
-                    </div>
-                    <div className="mt-4 relative w-80">
-                        <input
-                            type="password"
-                            ref={passwordRef}
-                            value={passwordValue}
-                            onChange={handlePasswordChange}
-                            onKeyDown={handleKeyDown}
-                            onFocus={() => setIsInputActive(true)}
-                            onBlur={() => setIsInputActive(false)}
-                            className={`w-full p-4 rounded-full bg-white bg-opacity-20 text-white text-lg pl-5 pr-16 focus:outline-none`}
-                            placeholder="Enter your password"
-                            style={{
-                                border: '1px solid rgba(255, 255, 255, 0.5)',
-                                transition: 'border-color 0.3s ease',
-                            }}
-                        />
-                        <button
-                            onClick={handleSubmit}
-                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white bg-purple-600 hover:bg-purple-700 p-2 rounded-full shadow-lg transition duration-300 ease-in-out"
-                            style={{
-                                width: '40px',
-                                height: '40px',
-                            }}
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-6 h-6">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 12h14M12 5l7 7-7 7" />
-                            </svg>
-                        </button>
+                    {/* Login Card */}
+                <div className="group relative overflow-hidden rounded-2xl p-1 transition-all duration-500 hover:scale-105 max-w-md w-full">
+                    {/* Animated Border */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl opacity-75 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    
+                    {/* Card Content */}
+                    <div className="relative bg-gray-900/90 backdrop-blur-sm rounded-2xl p-8 border border-gray-700/50 group-hover:border-transparent transition-all duration-300">
+                        <div className="space-y-6">
+                            {/* SRN Input */}
+                            <div className="relative">
+                                <label className="block text-sm font-medium text-gray-300 mb-2">Student Registration Number</label>
+                                <input
+                                    type="text"
+                                    ref={inputRef}
+                                    value={inputValue}
+                                    onChange={handleInputChange}
+                                    onKeyDown={handleKeyDown}
+                                    onFocus={() => setIsInputActive(true)}
+                                    onBlur={() => setIsInputActive(false)}
+                                    className={`w-full p-4 rounded-xl bg-gray-800/50 backdrop-blur-sm text-white text-lg border transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400 ${
+                                        showShakeAnimation ? 'shake' : ''
+                                    } ${
+                                        !isInputValid ? 'border-red-500 focus:ring-red-500' : 'border-gray-600/50 hover:border-gray-500/50'
+                                    }`}
+                                    placeholder="PESXUGXXCSXXX"
+                                />
+                                {!isInputValid && (
+                                    <p className="text-red-400 text-sm mt-2">Please enter a valid SRN format</p>
+                                )}
+                            </div>
+
+                            {/* Password Input */}
+                            <div className="relative">
+                                <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
+                                <input
+                                    type="password"
+                                    ref={passwordRef}
+                                    value={passwordValue}
+                                    onChange={handlePasswordChange}
+                                    onKeyDown={handleKeyDown}
+                                    onFocus={() => setIsInputActive(true)}
+                                    onBlur={() => setIsInputActive(false)}
+                                    className="w-full p-4 rounded-xl bg-gray-800/50 backdrop-blur-sm text-white text-lg border border-gray-600/50 hover:border-gray-500/50 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-400"
+                                    placeholder="Enter your password"
+                                />
+                            </div>
+
+                            {/* Submit Button */}
+                            <button
+                                onClick={handleSubmit}
+                                onMouseEnter={() => setHoveredButton(true)}
+                                onMouseLeave={() => setHoveredButton(false)}
+                                className={`w-full py-4 px-6 rounded-xl font-medium transition-all duration-300 transform hover:scale-105
+                                    bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-400 hover:to-purple-500 
+                                    text-white shadow-lg hover:shadow-xl hover:shadow-purple-500/25
+                                    focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-gray-900 
+                                    flex items-center justify-center space-x-2 group`}
+                            >
+                                <span>Sign In</span>
+                                <svg 
+                                    xmlns="http://www.w3.org/2000/svg" 
+                                    fill="none" 
+                                    viewBox="0 0 24 24" 
+                                    stroke="currentColor" 
+                                    className={`w-5 h-5 transition-transform duration-300 ${hoveredButton ? 'translate-x-1' : ''}`}
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
                     
                 </div>
-                <footer className="absolute bottom-0 w-full text-center text-gray-500 text-sm mb-4" style={{ opacity: 0.7 }}>
+
+                <style jsx>{`
+                @keyframes wave {
+                    0% { background-position: 0 0; }
+                    50% { background-position: 30px 30px; }
+                    100% { background-position: 0 0; }
+                }
+                
+                @keyframes float {
+                    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+                    33% { transform: translate(30px, -30px) rotate(120deg); }
+                    66% { transform: translate(-20px, 20px) rotate(240deg); }
+                }
+                
+                @keyframes shooting-star {
+                    0% { transform: translateX(-100px) translateY(0px); opacity: 0; }
+                    10% { opacity: 1; }
+                    90% { opacity: 1; }
+                    100% { transform: translateX(300px) translateY(-200px); opacity: 0; }
+                }
+                
+                @keyframes shake {
+                    0% { transform: translateX(0); }
+                    25% { transform: translateX(-5px); }
+                    50% { transform: translateX(5px); }
+                    75% { transform: translateX(-5px); }
+                    100% { transform: translateX(0); }
+                }
+                
+                @keyframes typing {
+                    from { width: 0; }
+                    to { width: 14ch; }
+                }
+                
+                @keyframes blink {
+                    50% { border-color: transparent; }
+                }
+                
+                .animate-wave {
+                    animation: wave 12s infinite linear;
+                }
+                
+                .animate-float {
+                    animation: float 20s infinite ease-in-out;
+                }
+                
+                .animate-shooting-star {
+                    animation: shooting-star 3s infinite linear;
+                }
+                
+                .shake {
+                    animation: shake 0.4s ease;
+                }
+                
+                .typewriter {
+                    overflow: hidden;
+                    white-space: nowrap;
+                    width: 14ch;
+                    border-right: 3px solid rgba(168, 85, 247, 0.8);
+                    animation: typing 1.5s steps(14, end), blink 0.4s step-end infinite;
+                }
+                
+                /* Glassmorphism effect */
+                .backdrop-blur-sm {
+                    backdrop-filter: blur(4px);
+                }
+                
+                /* Custom scrollbar */
+                ::-webkit-scrollbar {
+                    width: 8px;
+                }
+                
+                ::-webkit-scrollbar-track {
+                    background: rgba(0, 0, 0, 0.1);
+                }
+                
+                ::-webkit-scrollbar-thumb {
+                    background: rgba(168, 85, 247, 0.3);
+                    border-radius: 4px;
+                }
+                
+                ::-webkit-scrollbar-thumb:hover {
+                    background: rgba(168, 85, 247, 0.5);
+                }
+            `}</style>
+
+                {/* Footer */}
+                <footer
+                    className="absolute bottom-0 w-full text-center text-gray-500 text-sm mb-4"
+                    style={{
+                        opacity: 0.7,
+                    }}
+                >
                     Made with <span className="text-pink-500">🩵</span> by <a href="https://github.com/nocap-placify" className="underline">nocap-placify</a>.
                 </footer>
-                <style jsx>{`
-                    .shake {
-                        animation: shake 0.4s ease;
-                    }
-                    @keyframes wave {
-                        0% {
-                            background-position: 0 0;
-                        }
-                        50% {
-                            background-position: 25px 25px;
-                        }
-                        100% {
-                            background-position: 0 0;
-                        }
-                    }
-
-                    .animate-wave {
-                        animation: wave 8s infinite linear;
-                    }
-
-                    @keyframes slide {
-                        0% {
-                            transform: translateX(-100%) rotate(-45deg);
-                        }
-                        100% {
-                            transform: translateX(100%) rotate(-45deg);
-                        }
-                    }
-
-                    @keyframes float {
-                        0%, 100% {
-                            transform: translate(0, 0);
-                        }
-                        50% {
-                            transform: translate(30px, -30px);
-                        }
-                    }
-
-                    @keyframes pulse {
-                        0%, 100% { transform: scale(1); opacity: 0.2; }
-                        50% { transform: scale(1.2); opacity: 0.4; }
-                    }
-
-                    @keyframes glow {
-                        0% {
-                            text-shadow: 0 0 20px rgba(168, 85, 247, 0);
-                        }
-                        50% {
-                            text-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
-                        }
-                        100% {
-                            text-shadow: 0 0 20px rgba(168, 85, 247, 0);
-                        }
-                    }
-
-                    .animate-glow {
-                        animation: glow 3s infinite;
-                    }
-
-                    .animate-slideIn {
-                        animation: slideIn 1s forwards;
-                        opacity: 0;
-                        transform: translateY(20px);
-                    }
-
-                    @keyframes slideIn {
-                        to {
-                            opacity: 1;
-                            transform: translateY(0);
-                        }
-                    }
-
-                    .animate-fadeIn {
-                        animation: fadeIn 1s forwards;
-                        opacity: 0;
-                    }
-
-                    @keyframes fadeIn {
-                        to {
-                            opacity: 1;
-                        }
-                    }
-
-                    @keyframes shake {
-                        0% { transform: translateX(0); }
-                        25% { transform: translateX(-5px); }
-                        50% { transform: translateX(5px); }
-                        75% { transform: translateX(-5px); }
-                        100% { transform: translateX(0); }
-                    }
-
-                    .typewriter {
-                        overflow: hidden;
-                        white-space: nowrap;
-                        width: 6ch;
-                        border-right: 3px solid rgba(168, 85, 247, 0.8);
-                        animation: typing 1s steps(8, end), blink 0.4s step-end infinite;
-                    }
-
-                    @keyframes typing {
-                        from { width: 0; }
-                        to { width: 7ch; }
-                    }
-
-                    @keyframes blink {
-                        50% { border-color: transparent; }
-                    }
-
-                    .animate-float {
-                        animation: float 15s infinite ease-in-out;
-                    }
-
-                    .animate-pulse {
-                        animation: pulse 5s infinite ease-in-out;
-                    }
-                `}</style>
             </div>
+        </div>
     );
 };
