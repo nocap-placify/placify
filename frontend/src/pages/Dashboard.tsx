@@ -18,6 +18,7 @@ import { BsFillCalendarFill } from 'react-icons/bs';
 import { ReactComponent as LeaderboardIcon } from '../assets/leaderboard-svgrepo-com.svg';
 import { FaBookOpen } from 'react-icons/fa';
 import { FaRegFileAlt } from 'react-icons/fa';
+import ChatbotModal from '../components/ChatbotModal';
 
 
 interface MousePosition {
@@ -42,6 +43,7 @@ const item = {
     opacity: 1
   }
 };
+
 
 interface LeetcodeData {
   leetcode_id: string;
@@ -266,6 +268,12 @@ const fetchLeetcodeStats = async (srn) => {
     return null;
   }
 };
+const handleChatbotClick = () => {
+  setShowFooter(false);
+  setShowModal(true);
+  setModalContent(<ChatbotModal srn={studentSRN} />);
+};
+
 
 const [modalText, setModalText] = useState("");
 const handleStatsCardClick = async (srn) => {
@@ -375,113 +383,7 @@ const handleStatsCardClick = async (srn) => {
     );
   }
 };
-// const handleStatsCardClick = async (srn) => {
-//   openModalWithLoading();
 
-//   try {
-//     const cgpaData = await fetchCgpaStats(srn);
-//     const leetcodeData = await fetchLeetcodeStats(srn);
-
-//     if (cgpaData && leetcodeData) {
-//       const cgpaLeaderboard = cgpaData.leaderboard || [];
-//       const cgpaRelativeRank = cgpaData.relative_rank;
-//       const leetcodeLeaderboard = leetcodeData.leaderboard || [];
-//       const leetcodeRelativeRank = leetcodeData.relative_rank;
-
-//       let selectedStats = 'cgpa';
-
-//       const handleStatToggle = () => {
-//         selectedStats = selectedStats === 'cgpa' ? 'leetcode' : 'cgpa';
-//         renderModalContent();
-//       };
-
-//       const renderModalContent = () => {
-//         setModalContent(
-//           <div className="p-6 bg-white rounded-lg shadow-lg relative" onClick={(e) => e.stopPropagation()}>
-//             <button
-//               className="absolute top-2 right-2 text-gray-700"
-//               onClick={() => {
-//                 console.log("Close button clicked");
-//                 closeModal();
-//               }}
-//             />
-
-//             <h2 className="text-2xl font-bold text-gray-800 mb-4">Stats</h2>
-
-//             {/* Toggle Switch */}
-//             <div className="flex items-center mb-6">
-//               <div
-//                 className="relative inline-flex items-center cursor-pointer w-16 h-8 bg-gray-200 rounded-full"
-//                 onClick={handleStatToggle}
-//                 aria-label="Toggle between CGPA and LeetCode stats"
-//               >
-//                 <span
-//                   className={`absolute w-8 h-8 bg-purple-500 rounded-full shadow-md transform transition-transform ${
-//                     selectedStats === 'cgpa' ? 'translate-x-0' : 'translate-x-8'
-//                   }`}
-//                 ></span>
-//               </div>
-//             </div>
-
-//             {/* Conditionally render CGPA stats */}
-//             {selectedStats === 'cgpa' && (
-//               <>
-//                 <div className="text-lg font-semibold text-gray-700 mb-4">CGPA Rank Stats:</div>
-//                 <ul className="space-y-2 mb-4">
-//                   {cgpaLeaderboard.map((entry, index) => (
-//                     <li key={index} className="text-gray-600">
-//                       <span className="font-medium">Name:</span> {entry.name},
-//                       <span className="font-medium"> CGPA:</span> {entry.cgpa},
-//                       <span className="font-medium"> Rank:</span> {entry.rank}
-//                     </li>
-//                   ))}
-//                 </ul>
-//                 <div className="text-gray-800 font-semibold mb-4">
-//                   CGPA Relative Rank: {cgpaRelativeRank}
-//                 </div>
-//               </>
-//             )}
-
-//             {/* Conditionally render Leetcode stats */}
-//             {selectedStats === 'leetcode' && (
-//               <>
-//                 <div className="text-lg font-semibold text-gray-700 mb-4">LeetCode Rank Stats:</div>
-//                 <ul className="space-y-2">
-//                   {leetcodeLeaderboard.map((entry, index) => (
-//                     <li key={index} className="text-gray-600">
-//                       <span className="font-medium">Name:</span> {entry.name},
-//                       <span className="font-medium"> Rank:</span> {entry.rank}
-//                     </li>
-//                   ))}
-//                 </ul>
-//                 <div className="text-gray-800 font-semibold">
-//                   LeetCode Relative Rank: {leetcodeRelativeRank}
-//                 </div>
-//               </>
-//             )}
-//           </div>
-//         );
-//       };
-
-//       renderModalContent();
-//     } else {
-//       setModalContent(
-//         <div className="p-6 bg-white rounded-lg shadow-lg">
-//           <h2 className="text-xl font-bold text-red-600">Error loading stats data</h2>
-//           <p className="text-gray-600">Please try again later.</p>
-//         </div>
-//       );
-//     }
-//   } catch (error) {
-//     console.error("Error fetching stats:", error);
-//     setModalContent(
-//       <div className="p-6 bg-white rounded-lg shadow-lg">
-//         <h2 className="text-xl font-bold text-red-600">Error loading stats data</h2>
-//         <p className="text-gray-600">Please try again later.</p>
-//       </div>
-//     );
-//   }
-// };
 
 
 // Open modal with loading spinner
@@ -784,6 +686,10 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
             </div>
         );
     }
+};
+
+const handleResumeClick2 = () => {
+  window.open('http://localhost:8000/fe.html', '_blank');
 };
 
   const closeModal = () => {
@@ -1101,7 +1007,14 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-gray-800 bg-opacity-90 flex items-center justify-center p-4"
             >
-              <div className="bg-white text-black rounded-lg w-full max-w-4xl shadow-lg relative">
+              <div
+  className="rounded-2xl w-full max-w-4xl relative overflow-hidden backdrop-blur-md border border-white/10"
+  style={{
+    background: 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+  }}
+>
+
                 <button
                   onClick={closeModal}
                   className="absolute top-2 right-4 text-xl bg-red-500 text-white px-2 py-1 rounded z-50"
@@ -1118,22 +1031,31 @@ const handleStatButtonClick = (stat, cgpaLeaderboard, cgpaRelativeRank, leetcode
       )}
     </AnimatePresence>
     <AnimatePresence>
-    <motion.div
-      className="absolute top-4 right-4 flex items-center space-x-4"
-      variants={item}
-      initial="hidden"
-      animate="visible"
-      exit="hidden"
+  <motion.div
+    className="fixed bottom-6 right-6 z-50"
+    initial={{ opacity: 0, scale: 0.9 }}
+    animate={{ opacity: 1, scale: 1 }}
+    exit={{ opacity: 0, scale: 0.9 }}
+    transition={{ duration: 0.3 }}
+  >
+    <button
+      onClick={handleChatbotClick}
+      className="relative px-6 py-3 rounded-full bg-white text-blue-800 font-semibold text-sm z-10 overflow-hidden border-2 border-blue-400 shadow-md transition duration-300 hover:shadow-blue-400/70"
+      style={{
+        boxShadow: '0 0 20px rgba(59,130,246,0.4), 0 0 40px rgba(59,130,246,0.3)',
+      }}
     >
-      {/* <button
-        onClick={handleResumeClick}
-        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/50 transition duration-300 border-4 border-blue-500 border-opacity-50 hover:border-opacity-100"
->
-        View Resume
-      </button> */}
+      <span className="z-10 relative">💬 Chatbot Assistant</span>
+      <span
+        className="absolute inset-0 rounded-full opacity-30 blur-xl"
+        style={{
+          background: 'radial-gradient(circle at center, rgba(59,130,246,0.4), transparent 70%)',
+        }}
+      />
+    </button>
+  </motion.div>
+</AnimatePresence>
 
-    </motion.div>
-  </AnimatePresence>
 
   {showFooter && (
         <footer
