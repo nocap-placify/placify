@@ -141,6 +141,9 @@ export const Landing = () => {
             handleSubmit();
         }
     };
+    const handleBackToHome = () => {
+        navigate('/');
+    };
 
     useEffect(() => {
         setIsVisible(true);
@@ -346,7 +349,9 @@ export const Landing = () => {
                 </div>
                     
                 </div>
-
+                <footer className="absolute bottom-0 w-full text-center text-gray-500 text-sm mb-4" style={{ opacity: 0.7 }}>
+                    Made with <span className="text-pink-500">🩵</span> by <a href="https://github.com/nocap-placify" className="underline">nocap-placify</a>.
+                </footer>
                 <style jsx>{`
                     .shake {
                         animation: shake 0.4s ease;
@@ -463,11 +468,6 @@ export const Landing = () => {
                         animation: pulse 5s infinite ease-in-out;
                     }
                 `}</style>
-
-                <footer className="absolute bottom-0 w-full text-center text-gray-500 text-sm mb-4" style={{ opacity: 0.7 }}>
-                    Made with <span className="text-pink-500">🩵</span> by <a href="https://github.com/nocap-placify" className="underline">nocap-placify</a>.
-                </footer>
             </div>
-        </div>
     );
 };
