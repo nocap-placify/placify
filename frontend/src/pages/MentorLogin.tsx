@@ -48,7 +48,7 @@ export const MentorLogin = () => {
 
         try {
             const encryptedPassword = btoa(password);
-            const response = await axios.get(`http://100.102.21.101:8000/mentorLogin?mentorId=${mentorId}&password=${encryptedPassword}`);
+            const response = await axios.get(`http://100.102.21.101:8000/mentorLogin?mentorId=${mentorId}&password=${password}`);
             const mentorName = response.data;
 
             if (!mentorName) {
